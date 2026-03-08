@@ -1082,25 +1082,6 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
 
 .manage-kpi-add button:active { opacity: 0.7; }
 
-/* ── Home — Admin Team Switcher ────────────────────────── */
-
-#admin-team-switch {
-  display: block;
-  margin-top: 6px;
-  padding: 5px 10px;
-  font-family: 'Barlow', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  background: var(--bg2);
-  border: 1px solid var(--bg3);
-  border-radius: 8px;
-  color: var(--text);
-  outline: none;
-  cursor: pointer;
-}
-
-#admin-team-switch:focus { border-color: var(--gold); }
-
 /* ── All Teams screen ───────────────────────────────────── */
 
 .allteams-list {
@@ -1193,7 +1174,6 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
   <div class="profile-header-area" onclick="goTo('profile')">
     <div class="home-greeting" id="home-greeting"></div>
     <div class="home-team-badge" id="home-team-badge"></div>
-    <select id="admin-team-switch" class="super-admin-only" onclick="event.stopPropagation()"></select>
   </div>
   <div class="home-grid">
     <div class="home-tile" onclick="goTo('dashboard')">
@@ -1592,33 +1572,7 @@ function goTo(screen) {
   switch (screen) {
     case 'home':
       document.getElementById('home-greeting').textContent = 'Hello, ' + currentUser;
-      var isSuperHome = isAdmin && currentUser.toLowerCase() === 'kobe';
-      var badgeEl = document.getElementById('home-team-badge');
-      badgeEl.textContent = currentTeamName;
-      badgeEl.style.display = isSuperHome ? 'none' : '';
-      if (isSuperHome) {
-        var sw = document.getElementById('admin-team-switch');
-        api('getTeams').then(function(teams) {
-          if (!Array.isArray(teams)) return;
-          sw.innerHTML = '';
-          teams.forEach(function(t) {
-            var opt = document.createElement('option');
-            opt.value = t.id;
-            opt.textContent = t.name;
-            opt.dataset.teamName = t.name;
-            if (t.id === currentTeamId) opt.selected = true;
-            sw.appendChild(opt);
-          });
-        });
-        sw.onchange = function() {
-          var sel = sw.options[sw.selectedIndex];
-          currentTeamId = sel.value;
-          currentTeamName = sel.dataset.teamName;
-          localStorage.setItem('tt_teamId', currentTeamId);
-          localStorage.setItem('tt_teamName', currentTeamName);
-          document.getElementById('home-team-badge').textContent = currentTeamName;
-        };
-      }
+      document.getElementById('home-team-badge').textContent = currentTeamName;
       break;
     case 'teamselect':
       loadTeamSelect();
