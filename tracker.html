@@ -816,6 +816,7 @@ html, body {
 /* ── Admin-only elements (hidden for non-admins) ── */
 
 body:not(.is-admin) .admin-only { display: none !important; }
+body:not(.is-super-admin) .super-admin-only { display: none !important; }
 
 /* ── Delete buttons (admin-only) ────────────────────────── */
 
@@ -1117,8 +1118,8 @@ body:not(.is-admin) .admin-only { display: none !important; }
   <div class="team-list" id="team-list">
     <div class="team-loading">Loading teams...</div>
   </div>
-  <div class="team-divider admin-only">— or —</div>
-  <div class="team-create-row admin-only">
+  <div class="team-divider super-admin-only">— or —</div>
+  <div class="team-create-row super-admin-only">
     <input id="team-new-name" class="team-create-input" type="text" placeholder="New team name" maxlength="30" autocomplete="off">
     <button class="team-create-btn" onclick="createTeam()">CREATE</button>
   </div>
@@ -1134,7 +1135,7 @@ body:not(.is-admin) .admin-only { display: none !important; }
   <div class="profile-header-area" onclick="goTo('profile')">
     <div class="home-greeting" id="home-greeting"></div>
     <div class="home-team-badge" id="home-team-badge"></div>
-    <select id="admin-team-switch" class="admin-only" onclick="event.stopPropagation()"></select>
+    <select id="admin-team-switch" class="super-admin-only" onclick="event.stopPropagation()"></select>
   </div>
   <div class="home-grid">
     <div class="home-tile" onclick="goTo('dashboard')">
@@ -1259,7 +1260,7 @@ body:not(.is-admin) .admin-only { display: none !important; }
     <button class="back-btn" onclick="goTo('profile')">&#9664; Back</button>
     <h1>Manage Team</h1>
   </div>
-  <div class="manage-create-row admin-only">
+  <div class="manage-create-row super-admin-only">
     <input id="manage-new-team-name" type="text" placeholder="New team name" maxlength="30" autocomplete="off">
     <button onclick="createTeamFromManage()">CREATE</button>
   </div>
@@ -1420,6 +1421,11 @@ function updateAdminStatus() {
   } else {
     document.body.classList.remove('is-admin');
   }
+  if (nameAdmin) {
+    document.body.classList.add('is-super-admin');
+  } else {
+    document.body.classList.remove('is-super-admin');
+  }
 }
 
 function finishLogin(name, res) {
@@ -1529,7 +1535,7 @@ function goTo(screen) {
     case 'home':
       document.getElementById('home-greeting').textContent = 'Hello, ' + currentUser;
       document.getElementById('home-team-badge').textContent = currentTeamName;
-      if (isAdmin) {
+      if (isAdmin && currentUser.toLowerCase() === 'kobe') {
         var sw = document.getElementById('admin-team-switch');
         api('getTeams').then(function(teams) {
           if (!Array.isArray(teams)) return;
