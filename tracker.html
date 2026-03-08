@@ -1950,8 +1950,13 @@ function loadRnR() {
     var catByName = {};
     cats.forEach(function(c) { catByName[c.name.toLowerCase()] = c; });
 
+    // Filter tasks: show only current team's track + General
+    var myTasks = RNR_TASKS.filter(function(t) {
+      return t.track === 'General' || t.track.toLowerCase() === currentTeamName.toLowerCase();
+    });
+
     // Find missing categories and auto-create them
-    var missing = RNR_TASKS.filter(function(t) { return !catByName[t.name.toLowerCase()]; });
+    var missing = myTasks.filter(function(t) { return !catByName[t.name.toLowerCase()]; });
     if (missing.length) {
       var created = 0;
       missing.forEach(function(t) {
@@ -1968,7 +1973,7 @@ function loadRnR() {
 
     // Calculate total score
     var totalScore = 0;
-    RNR_TASKS.forEach(function(t) {
+    myTasks.forEach(function(t) {
       var cat = catByName[t.name.toLowerCase()];
       if (cat) {
         var count = myTotals[cat.id] || 0;
@@ -1979,7 +1984,7 @@ function loadRnR() {
     // Group tasks by track
     var tracks = [];
     var trackMap = {};
-    RNR_TASKS.forEach(function(t) {
+    myTasks.forEach(function(t) {
       if (!trackMap[t.track]) {
         trackMap[t.track] = [];
         tracks.push(t.track);
