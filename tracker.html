@@ -547,6 +547,51 @@ html, body {
   padding: 32px 0;
 }
 
+/* ── RnR Competition ────────────────────────────────────── */
+
+.rnr-score {
+  text-align: center;
+  padding: 20px 0 16px;
+}
+
+.rnr-score-number {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 56px;
+  color: var(--gold);
+  line-height: 1;
+}
+
+.rnr-score-label {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.rnr-track-heading {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  color: var(--gold-dim);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 18px 0 8px;
+}
+
+.rnr-track-heading:first-of-type {
+  margin-top: 4px;
+}
+
+.rnr-points {
+  display: inline-block;
+  background: var(--gold-dim);
+  color: var(--bg);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  letter-spacing: 1px;
+  margin-top: 4px;
+}
+
 .log-toast {
   position: fixed;
   bottom: 80px;
@@ -1196,6 +1241,11 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
       <div class="home-tile-label">Activity</div>
       <div class="home-tile-desc">Recent logs</div>
     </div>
+    <div class="home-tile" onclick="goTo('rnr')">
+      <div class="home-tile-icon">&#127942;</div>
+      <div class="home-tile-label">RnR</div>
+      <div class="home-tile-desc">Competition</div>
+    </div>
     <div class="home-tile admin-only" onclick="goTo('allteams')">
       <div class="home-tile-icon">&#127760;</div>
       <div class="home-tile-label">All Teams</div>
@@ -1237,6 +1287,20 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
   </div>
 </div>
 <div class="log-toast" id="log-toast"></div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     RNR COMPETITION SCREEN
+     ══════════════════════════════════════════════════════════════ -->
+<div id="rnr-screen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goTo('home')">&#9664; Back</button>
+    <h1>RnR</h1>
+    <button class="refresh-btn" id="rnr-refresh" onclick="loadRnR()">&#8635;</button>
+  </div>
+  <div id="rnr-content">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+</div>
 
 <!-- ══════════════════════════════════════════════════════════════
      CATEGORIES SCREEN
@@ -1351,7 +1415,8 @@ const SCREENS = {
   activity:   'activity-screen',
   profile:    'profile-screen',
   manageteam: 'manage-team-screen',
-  allteams:   'allteams-screen'
+  allteams:   'allteams-screen',
+  rnr:        'rnr-screen'
 };
 
 // ── Init ────────────────────────────────────────────────────
@@ -1598,6 +1663,9 @@ function goTo(screen) {
     case 'allteams':
       loadAllTeams();
       break;
+    case 'rnr':
+      loadRnR();
+      break;
   }
 }
 
@@ -1836,6 +1904,145 @@ function loadLogCards() {
       });
     });
   });
+}
+
+// ── RnR Competition ──────────────────────────────────────────
+
+const RNR_TASKS = [
+  { track: 'iGT',       name: 'outreaches to companies', points: 3 },
+  { track: 'iGT',       name: 'meeting with a company',  points: 6 },
+  { track: 'iGT',       name: 'join a workspace',        points: 1 },
+  { track: 'iGT',       name: 'networking event',        points: 6 },
+  { track: 'oGX',       name: 'call 10 leads/recontacts',        points: 3 },
+  { track: 'oGX',       name: 'send EP 3 projects',              points: 3 },
+  { track: 'oGX',       name: 'first contact meeting with EP',   points: 6 },
+  { track: 'oGX',       name: 'IR meeting',                      points: 3 },
+  { track: 'Marketing', name: 'aula shout',              points: 6 },
+  { track: 'Marketing', name: 'join info booth',         points: 3 },
+  { track: 'Marketing', name: 'video for social media',  points: 3 },
+  { track: 'Marketing', name: 'create content',          points: 3 },
+  { track: 'Marketing', name: 'instagram/LinkedIn post', points: 1 },
+  { track: 'Marketing', name: 'video after event',       points: 3 },
+  { track: 'General',   name: 'coffee with AIESECer',    points: 6 },
+  { track: 'General',   name: 'meme for LCM',            points: 2 },
+  { track: 'General',   name: 'attend aula shout',       points: 6 },
+  { track: 'General',   name: 'attend info booth',       points: 3 },
+  { track: 'General',   name: 'help create video',       points: 3 }
+];
+
+function loadRnR() {
+  var el = document.getElementById('rnr-content');
+  var btn = document.getElementById('rnr-refresh');
+  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  btn.classList.add('spinning');
+
+  api('getSummary', { teamId: currentTeamId }).then(function(data) {
+    btn.classList.remove('spinning');
+    if (data.error || !data.categories) {
+      el.innerHTML = '<div class="log-empty">Could not load RnR data</div>';
+      return;
+    }
+
+    var cats = data.categories;
+    var myTotals = (data.totals && data.totals[currentUser]) || {};
+
+    // Build lookup: category name (lowercase) → category object
+    var catByName = {};
+    cats.forEach(function(c) { catByName[c.name.toLowerCase()] = c; });
+
+    // Find missing categories and auto-create them
+    var missing = RNR_TASKS.filter(function(t) { return !catByName[t.name.toLowerCase()]; });
+    if (missing.length) {
+      var created = 0;
+      missing.forEach(function(t) {
+        api('addCategory', { name: t.name, person: currentUser, teamId: currentTeamId }).then(function(res) {
+          created++;
+          if (created >= missing.length) {
+            // Reload after all categories are created
+            loadRnR();
+          }
+        });
+      });
+      return;
+    }
+
+    // Calculate total score
+    var totalScore = 0;
+    RNR_TASKS.forEach(function(t) {
+      var cat = catByName[t.name.toLowerCase()];
+      if (cat) {
+        var count = myTotals[cat.id] || 0;
+        totalScore += count * t.points;
+      }
+    });
+
+    // Group tasks by track
+    var tracks = [];
+    var trackMap = {};
+    RNR_TASKS.forEach(function(t) {
+      if (!trackMap[t.track]) {
+        trackMap[t.track] = [];
+        tracks.push(t.track);
+      }
+      trackMap[t.track].push(t);
+    });
+
+    // Render
+    var html = '<div class="rnr-score">' +
+      '<div class="rnr-score-number">' + totalScore + '</div>' +
+      '<div class="rnr-score-label">Total RnR Points</div>' +
+      '</div>';
+
+    tracks.forEach(function(track) {
+      html += '<div class="rnr-track-heading">' + esc(track) + '</div>';
+      html += '<div class="log-cards">';
+      trackMap[track].forEach(function(t) {
+        var cat = catByName[t.name.toLowerCase()];
+        var catId = cat ? cat.id : '';
+        var count = cat ? (myTotals[cat.id] || 0) : 0;
+        html += '<div class="log-card" data-cat-id="' + esc(catId) + '" data-cat-name="' + esc(t.name) + '">' +
+          '<div class="log-card-name">' + esc(t.name) + '</div>' +
+          '<div class="rnr-points">+' + t.points + ' pts</div>' +
+          '<div class="log-card-btns">' +
+          '<button class="log-card-minus">\u2212</button>' +
+          '<button class="log-card-plus">+</button>' +
+          '</div>' +
+          '<div class="log-card-count">You: ' + count + '</div>' +
+          '</div>';
+      });
+      html += '</div>';
+    });
+
+    el.innerHTML = html;
+
+    // Attach +/- handlers (reuse logAction/logSubtract)
+    el.querySelectorAll('.log-card').forEach(function(card) {
+      card.querySelector('.log-card-plus').addEventListener('click', function(e) {
+        e.stopPropagation();
+        logAction(card.dataset.catId, card.dataset.catName);
+        // Update RnR total score
+        updateRnRScore(1, card.dataset.catName);
+      });
+      card.querySelector('.log-card-minus').addEventListener('click', function(e) {
+        e.stopPropagation();
+        var countEl = card.querySelector('.log-card-count');
+        var cur = parseInt(countEl.textContent.replace('You: ', ''), 10) || 0;
+        if (cur <= 0) { showToast('Already at 0'); return; }
+        logSubtract(card.dataset.catId, card.dataset.catName);
+        updateRnRScore(-1, card.dataset.catName);
+      });
+    });
+  });
+}
+
+function updateRnRScore(delta, catName) {
+  var task = RNR_TASKS.find(function(t) { return t.name.toLowerCase() === catName.toLowerCase(); });
+  if (!task) return;
+  var scoreEl = document.querySelector('.rnr-score-number');
+  if (scoreEl) {
+    var cur = parseInt(scoreEl.textContent, 10) || 0;
+    scoreEl.textContent = cur + (delta * task.points);
+  }
 }
 
 function logAction(catId, catName) {
