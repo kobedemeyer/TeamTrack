@@ -772,6 +772,15 @@ html, body {
   padding: 48px 0;
 }
 
+.manage-team-heading {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  color: var(--gold);
+  padding: 18px 0 6px;
+  border-bottom: 1px solid var(--bg2);
+  margin-bottom: 8px;
+}
+
 /* ── Admin-only elements (hidden for non-admins) ── */
 
 body:not(.is-admin) .admin-only { display: none !important; }
@@ -1435,25 +1444,43 @@ function loadManageTeam() {
   var el = document.getElementById('manage-team-list');
   el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
 
-  api('getMembers', { teamId: currentTeamId }).then(function(members) {
+  api('getAllMembers').then(function(members) {
     if (members.error || !Array.isArray(members)) {
       el.innerHTML = '<div class="manage-empty">Could not load members</div>';
       return;
     }
     if (!members.length) {
-      el.innerHTML = '<div class="manage-empty">No members in this team</div>';
+      el.innerHTML = '<div class="manage-empty">No members found</div>';
       return;
     }
 
-    var html = '';
+    // Group by teamName
+    var groups = {};
     members.forEach(function(m) {
-      var initials = getInitials(m.name);
-      var color = getAvatarColor(m.name);
-      html += '<div class="manage-member-row">' +
-        '<div class="manage-member-avatar" style="background:' + color + '">' + esc(initials) + '</div>' +
-        '<div class="manage-member-name">' + esc(m.name) + '</div>' +
-        '<button class="manage-remove-btn" onclick="removeMember(\'' + esc(m.name) + '\')">Remove</button>' +
-        '</div>';
+      var key = m.teamName || 'No team';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(m);
+    });
+
+    // Sort team names, but put "No team" last
+    var teamNames = Object.keys(groups).sort(function(a, b) {
+      if (a === 'No team') return 1;
+      if (b === 'No team') return -1;
+      return a.localeCompare(b);
+    });
+
+    var html = '';
+    teamNames.forEach(function(teamName) {
+      html += '<div class="manage-team-heading">' + esc(teamName) + '</div>';
+      groups[teamName].forEach(function(m) {
+        var initials = getInitials(m.name);
+        var color = getAvatarColor(m.name);
+        html += '<div class="manage-member-row">' +
+          '<div class="manage-member-avatar" style="background:' + color + '">' + esc(initials) + '</div>' +
+          '<div class="manage-member-name">' + esc(m.name) + '</div>' +
+          '<button class="manage-remove-btn" onclick="removeMember(\'' + esc(m.name) + '\')">Remove</button>' +
+          '</div>';
+      });
     });
     el.innerHTML = html;
   });
