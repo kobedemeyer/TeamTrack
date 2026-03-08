@@ -4,11 +4,11 @@
   "description": "Team KPI & Action Tracking Tool",
   "start_url": "tracker.html",
   "display": "standalone",
-  "background_color": "#1e0c03",
-  "theme_color": "#1e0c03",
+  "background_color": "#ffffff",
+  "theme_color": "#037ef3",
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%231e0c03' width='100' height='100' rx='20'/><text x='50' y='65' text-anchor='middle' font-size='50' fill='%23c89858'>TT</text></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23037ef3' width='100' height='100' rx='20'/><text x='50' y='65' text-anchor='middle' font-size='50' fill='%23ffffff'>TT</text></svg>",
       "sizes": "any",
       "type": "image/svg+xml"
     }
