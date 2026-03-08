@@ -41,6 +41,9 @@ function doGet(e) {
       case 'getMembers':
         result = getMembers(e.parameter.teamId);
         break;
+      case 'getAllMembers':
+        result = getAllMembers();
+        break;
       case 'removeMemberFromTeam':
         result = removeMemberFromTeam(e.parameter.name);
         break;
@@ -287,6 +290,31 @@ function getMembers(teamId) {
     }
   });
   return result;
+}
+
+function getAllMembers() {
+  var membersSheet = SS.getSheetByName('Members');
+  if (!membersSheet) return [];
+  var members = membersSheet.getDataRange().getValues().slice(1);
+
+  // Build team lookup: id → name
+  var teamNames = {};
+  var teamsSheet = SS.getSheetByName('Teams');
+  if (teamsSheet) {
+    teamsSheet.getDataRange().getValues().slice(1).forEach(function(r) {
+      teamNames[r[0]] = r[1];
+    });
+  }
+
+  return members.map(function(r) {
+    var tid = r[2] || '';
+    return {
+      name: r[0],
+      joinedAt: r[1],
+      teamId: tid,
+      teamName: tid ? (teamNames[tid] || 'Unknown team') : 'No team'
+    };
+  });
 }
 
 function removeMemberFromTeam(name) {
