@@ -634,6 +634,144 @@ html, body {
 .refresh-btn:active { opacity: 0.5; }
 .refresh-btn.spinning { animation: spin 0.7s linear infinite; }
 
+/* ── Profile ─────────────────────────────────────────────── */
+
+.profile-header-area {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3px solid var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  color: var(--bg);
+  margin: 24px auto 12px;
+}
+
+.profile-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(28px, 7vw, 40px);
+  color: var(--gold);
+  letter-spacing: 2px;
+  text-align: center;
+}
+
+.profile-team-badge {
+  display: inline-block;
+  background: var(--bg3);
+  color: var(--gold-light);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 14px;
+  border-radius: 20px;
+  margin: 4px auto 20px;
+  text-align: center;
+}
+
+.profile-stats {
+  display: flex;
+  gap: 10px;
+  padding: 0 4px 24px;
+}
+
+.profile-stat-card {
+  flex: 1;
+  background: var(--bg2);
+  border-radius: var(--radius);
+  padding: 16px 8px;
+  text-align: center;
+}
+
+.profile-stat-val {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+
+.profile-stat-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.profile-manage-btn {
+  display: block;
+  width: min(280px, 70vw);
+  margin: 0 auto 16px;
+  padding: 14px 0;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 2px;
+  background: var(--bg2);
+  border: 2px solid var(--gold-dim);
+  border-radius: var(--radius);
+  color: var(--gold);
+  cursor: pointer;
+  text-align: center;
+}
+
+.profile-manage-btn:active { border-color: var(--gold); }
+
+/* ── Manage Team ─────────────────────────────────────────── */
+
+.manage-member-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg2);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+
+.manage-member-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  color: var(--bg);
+  flex-shrink: 0;
+}
+
+.manage-member-name {
+  flex: 1;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.manage-remove-btn {
+  background: none;
+  border: 2px solid var(--red);
+  color: var(--red);
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 5px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.manage-remove-btn:active { opacity: 0.6; }
+
+.manage-empty {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 48px 0;
+}
+
 /* ── Admin-only elements (hidden for non-admins) ── */
 
 body:not(.is-admin) .admin-only { display: none !important; }
@@ -675,8 +813,10 @@ body:not(.is-admin) .admin-only { display: none !important; }
   <div class="header">
     <h1>TeamTrack</h1>
   </div>
-  <div class="home-greeting" id="home-greeting"></div>
-  <div class="home-team-badge" id="home-team-badge"></div>
+  <div class="profile-header-area" onclick="goTo('profile')">
+    <div class="home-greeting" id="home-greeting"></div>
+    <div class="home-team-badge" id="home-team-badge"></div>
+  </div>
   <div class="home-grid">
     <div class="home-tile" onclick="goTo('dashboard')">
       <div class="home-tile-icon">&#128202;</div>
@@ -768,6 +908,38 @@ body:not(.is-admin) .admin-only { display: none !important; }
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════
+     PROFILE SCREEN
+     ══════════════════════════════════════════════════════════════ -->
+<div id="profile-screen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goTo('home')">&#9664; Back</button>
+    <h1>Profile</h1>
+  </div>
+  <div id="profile-avatar" class="profile-avatar"></div>
+  <div id="profile-name" class="profile-name"></div>
+  <div style="text-align:center"><span id="profile-team-badge" class="profile-team-badge"></span></div>
+  <div class="profile-stats" id="profile-stats">
+    <div class="profile-stat-card"><div class="profile-stat-val" id="profile-total">—</div><div class="profile-stat-label">Total Actions</div></div>
+    <div class="profile-stat-card"><div class="profile-stat-val" id="profile-top-kpi">—</div><div class="profile-stat-label" id="profile-top-kpi-label">Top KPI</div></div>
+    <div class="profile-stat-card"><div class="profile-stat-val" id="profile-since">—</div><div class="profile-stat-label">Member Since</div></div>
+  </div>
+  <button class="profile-manage-btn admin-only" onclick="goTo('manageteam')">Manage Team</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     MANAGE TEAM SCREEN (admin-only)
+     ══════════════════════════════════════════════════════════════ -->
+<div id="manage-team-screen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goTo('profile')">&#9664; Back</button>
+    <h1>Manage Team</h1>
+  </div>
+  <div id="manage-team-list">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
      JAVASCRIPT
      ══════════════════════════════════════════════════════════════ -->
 <script>
@@ -795,7 +967,9 @@ const SCREENS = {
   dashboard:  'dash-screen',
   log:        'log-screen',
   categories: 'cat-screen',
-  activity:   'activity-screen'
+  activity:   'activity-screen',
+  profile:    'profile-screen',
+  manageteam: 'manage-team-screen'
 };
 
 // ── Init ────────────────────────────────────────────────────
@@ -943,6 +1117,12 @@ function goTo(screen) {
       break;
     case 'activity':
       loadActivity();
+      break;
+    case 'profile':
+      loadProfile();
+      break;
+    case 'manageteam':
+      loadManageTeam();
       break;
   }
 }
@@ -1196,6 +1376,99 @@ function formatTime(ts) {
   if (diff < 604800000) return Math.floor(diff / 86400000) + 'd ago';
 
   return d.toLocaleDateString();
+}
+
+function getInitials(name) {
+  if (!name) return '?';
+  var parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.trim().substring(0, 2).toUpperCase();
+}
+
+function getAvatarColor(name) {
+  var hash = 0;
+  for (var i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  var hue = Math.abs(hash) % 360;
+  return 'hsl(' + hue + ', 55%, 50%)';
+}
+
+// ── Profile ─────────────────────────────────────────────────
+
+function loadProfile() {
+  var initials = getInitials(currentUser);
+  var color = getAvatarColor(currentUser);
+
+  document.getElementById('profile-avatar').textContent = initials;
+  document.getElementById('profile-avatar').style.background = color;
+  document.getElementById('profile-name').textContent = currentUser;
+  document.getElementById('profile-team-badge').textContent = currentTeamName;
+
+  // Reset stats while loading
+  document.getElementById('profile-total').textContent = '…';
+  document.getElementById('profile-top-kpi').textContent = '…';
+  document.getElementById('profile-since').textContent = '…';
+  document.getElementById('profile-top-kpi-label').textContent = 'Top KPI';
+
+  api('getProfile', { name: currentUser, teamId: currentTeamId }).then(function(data) {
+    if (data.error) return;
+    document.getElementById('profile-total').textContent = data.totalActions;
+    if (data.topKpi && data.topKpi.name !== '—') {
+      document.getElementById('profile-top-kpi').textContent = data.topKpi.count;
+      document.getElementById('profile-top-kpi-label').textContent = data.topKpi.name;
+    } else {
+      document.getElementById('profile-top-kpi').textContent = '—';
+    }
+    if (data.memberSince) {
+      var d = new Date(data.memberSince);
+      document.getElementById('profile-since').textContent = isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
+    } else {
+      document.getElementById('profile-since').textContent = '—';
+    }
+  });
+}
+
+// ── Manage Team ─────────────────────────────────────────────
+
+function loadManageTeam() {
+  var el = document.getElementById('manage-team-list');
+  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+
+  api('getMembers', { teamId: currentTeamId }).then(function(members) {
+    if (members.error || !Array.isArray(members)) {
+      el.innerHTML = '<div class="manage-empty">Could not load members</div>';
+      return;
+    }
+    if (!members.length) {
+      el.innerHTML = '<div class="manage-empty">No members in this team</div>';
+      return;
+    }
+
+    var html = '';
+    members.forEach(function(m) {
+      var initials = getInitials(m.name);
+      var color = getAvatarColor(m.name);
+      html += '<div class="manage-member-row">' +
+        '<div class="manage-member-avatar" style="background:' + color + '">' + esc(initials) + '</div>' +
+        '<div class="manage-member-name">' + esc(m.name) + '</div>' +
+        '<button class="manage-remove-btn" onclick="removeMember(\'' + esc(m.name) + '\')">Remove</button>' +
+        '</div>';
+    });
+    el.innerHTML = html;
+  });
+}
+
+function removeMember(name) {
+  if (!confirm('Remove ' + name + ' from the team?')) return;
+  api('removeMemberFromTeam', { name: name }).then(function(res) {
+    if (res.ok) {
+      showToast(name + ' removed');
+      loadManageTeam();
+    } else {
+      showToast('Error: ' + (res.error || 'unknown'));
+    }
+  });
 }
 
 </script>
