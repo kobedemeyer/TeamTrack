@@ -1814,9 +1814,9 @@ function renderDashboard() {
         btn.addEventListener('click', function(e) {
           e.stopPropagation();
           var name = btn.dataset.delMember;
-          if (!confirm('Remove ' + name + ' from the team?')) return;
-          api('removeMemberFromTeam', { name: name }).then(function(res) {
-            if (res.ok) { showToast(name + ' removed'); loadDashboard(); }
+          if (!confirm('Permanently delete ' + name + ' and all their data?')) return;
+          api('deleteMember', { name: name }).then(function(res) {
+            if (res.ok) { showToast(name + ' deleted'); loadDashboard(); }
             else { showToast('Error: ' + (res.error || 'unknown')); }
           });
         });
