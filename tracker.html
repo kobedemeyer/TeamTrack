@@ -1814,10 +1814,14 @@ function renderDashboard() {
         btn.addEventListener('click', function(e) {
           e.stopPropagation();
           var name = btn.dataset.delMember;
-          if (!confirm('Permanently delete ' + name + ' and all their data?')) return;
-          api('deleteMember', { name: name }).then(function(res) {
-            if (res.ok) { showToast(name + ' deleted'); loadDashboard(); }
-            else { showToast('Error: ' + (res.error || 'unknown')); }
+          if (!confirm('Permanently delete ' + name + ' and all their logs?')) return;
+          Promise.all([
+            api('deleteMember', { name: name }),
+            api('deleteLogsByPerson', { name: name })
+          ]).then(function(results) {
+            var logRes = results[1];
+            if (logRes.ok) { showToast(name + ' deleted (' + (logRes.deleted || 0) + ' logs removed)'); loadDashboard(); }
+            else { showToast('Error: ' + (logRes.error || 'unknown')); }
           });
         });
       });

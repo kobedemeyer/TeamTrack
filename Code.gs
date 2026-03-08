@@ -68,6 +68,9 @@ function doGet(e) {
       case 'moveMemberToTeam':
         result = moveMemberToTeam(e.parameter.name, e.parameter.teamId);
         break;
+      case 'deleteLogsByPerson':
+        result = deleteLogsByPerson(e.parameter.name);
+        break;
       default:
         result = { error: 'Unknown action: ' + action };
     }
@@ -469,6 +472,25 @@ function moveMemberToTeam(name, teamId) {
     }
   }
   return { error: 'Member not found' };
+}
+
+function deleteLogsByPerson(name) {
+  if (!name) return { error: 'Missing name' };
+
+  var sheet = SS.getSheetByName('Logs');
+  if (!sheet) return { error: 'Logs sheet not found' };
+  var data = sheet.getDataRange().getValues();
+  var trimmed = name.trim().toLowerCase();
+  var deleted = 0;
+
+  // Delete from bottom to top to keep row indices stable
+  for (var i = data.length - 1; i >= 1; i--) {
+    if (data[i][1].toString().toLowerCase() === trimmed) {
+      sheet.deleteRow(i + 1);
+      deleted++;
+    }
+  }
+  return { ok: true, deleted: deleted };
 }
 
 function removeMemberFromTeam(name) {
