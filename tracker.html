@@ -1255,13 +1255,19 @@ function loadLogCards() {
     var html = '';
     cats.forEach(function(c) {
       var count = myTotals[c.id] || 0;
-      html += '<div class="log-card" onclick="logAction(\'' + esc(c.id) + '\', \'' + esc(c.name) + '\')">' +
+      html += '<div class="log-card" data-cat-id="' + esc(c.id) + '" data-cat-name="' + esc(c.name) + '">' +
         '<div class="log-card-name">' + esc(c.name) + '</div>' +
         '<div class="log-card-plus">+</div>' +
         '<div class="log-card-count">You: ' + count + '</div>' +
         '</div>';
     });
     el.innerHTML = html;
+
+    el.querySelectorAll('.log-card').forEach(function(card) {
+      card.addEventListener('click', function() {
+        logAction(card.dataset.catId, card.dataset.catName);
+      });
+    });
   });
 }
 
@@ -1270,14 +1276,12 @@ function logAction(catId, catName) {
     if (res.ok) {
       showToast('+1 ' + catName);
       // Update the count on the card without full reload
-      var cards = document.querySelectorAll('.log-card');
-      cards.forEach(function(card) {
-        if (card.getAttribute('onclick').indexOf(catId) !== -1) {
-          var countEl = card.querySelector('.log-card-count');
-          var cur = parseInt(countEl.textContent.replace('You: ', ''), 10) || 0;
-          countEl.textContent = 'You: ' + (cur + 1);
-        }
-      });
+      var card = document.querySelector('.log-card[data-cat-id="' + catId + '"]');
+      if (card) {
+        var countEl = card.querySelector('.log-card-count');
+        var cur = parseInt(countEl.textContent.replace('You: ', ''), 10) || 0;
+        countEl.textContent = 'You: ' + (cur + 1);
+      }
     } else {
       showToast('Error: ' + (res.error || 'unknown'));
     }
