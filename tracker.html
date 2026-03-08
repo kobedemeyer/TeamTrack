@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>TeamTrack</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1e0c03">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════════════
+   CSS — TeamTrack
+   ══════════════════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #1e0c03;
+  --bg2: #2a1508;
+  --bg3: #3a200e;
+  --gold: #c89858;
+  --gold-light: #e0b878;
+  --gold-dim: #8a6a3a;
+  --text: #f0e6d8;
+  --text-dim: #a89880;
+  --red: #c85050;
+  --green: #50a858;
+  --radius: 12px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Barlow', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* ── Screens ─────────────────────────────────────────────── */
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  padding: var(--safe-top) 16px var(--safe-bottom);
+  overflow-y: auto;
+}
+
+.screen.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── Header bar ──────────────────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0 12px;
+  flex-shrink: 0;
+}
+
+.header h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(24px, 6vw, 36px);
+  color: var(--gold);
+  letter-spacing: 2px;
+  flex: 1;
+}
+
+.back-btn {
+  background: none;
+  border: 2px solid var(--gold-dim);
+  color: var(--gold);
+  font-family: 'Barlow', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.back-btn:active { opacity: 0.6; }
+
+/* ── Login screen ────────────────────────────────────────── */
+
+#login-screen {
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+}
+
+.login-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(48px, 12vw, 72px);
+  color: var(--gold);
+  letter-spacing: 4px;
+  text-align: center;
+}
+
+.login-subtitle {
+  color: var(--text-dim);
+  font-size: 16px;
+  text-align: center;
+}
+
+.login-input {
+  width: min(300px, 80vw);
+  padding: 14px 18px;
+  font-size: 18px;
+  font-family: 'Barlow', sans-serif;
+  background: var(--bg2);
+  border: 2px solid var(--gold-dim);
+  border-radius: var(--radius);
+  color: var(--text);
+  text-align: center;
+  outline: none;
+}
+
+.login-input:focus { border-color: var(--gold); }
+
+.login-btn {
+  padding: 14px 48px;
+  font-size: 18px;
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 2px;
+  background: var(--gold);
+  color: var(--bg);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.login-btn:active { opacity: 0.7; }
+.login-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ── Team Select screen ──────────────────────────────────── */
+
+#team-screen {
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+
+.team-heading {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(28px, 8vw, 44px);
+  color: var(--gold);
+  letter-spacing: 3px;
+  text-align: center;
+}
+
+.team-sub {
+  color: var(--text-dim);
+  font-size: 14px;
+  text-align: center;
+}
+
+.team-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(320px, 85vw);
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.team-btn {
+  padding: 16px 20px;
+  background: var(--bg2);
+  border: 2px solid var(--bg3);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s;
+}
+
+.team-btn:active { border-color: var(--gold); }
+
+.team-btn-name {
+  color: var(--gold-light);
+}
+
+.team-btn-by {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+.team-divider {
+  color: var(--text-dim);
+  font-size: 13px;
+  text-align: center;
+  padding: 4px 0;
+}
+
+.team-create-row {
+  display: flex;
+  gap: 8px;
+  width: min(320px, 85vw);
+}
+
+.team-create-input {
+  flex: 1;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-family: 'Barlow', sans-serif;
+  background: var(--bg2);
+  border: 2px solid var(--bg3);
+  border-radius: 8px;
+  color: var(--text);
+  outline: none;
+}
+
+.team-create-input:focus { border-color: var(--gold); }
+
+.team-create-btn {
+  padding: 12px 20px;
+  background: var(--gold);
+  color: var(--bg);
+  border: none;
+  border-radius: 8px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.team-create-btn:active { opacity: 0.7; }
+
+.team-loading {
+  color: var(--text-dim);
+  font-size: 14px;
+  text-align: center;
+}
+
+/* ── Home screen ─────────────────────────────────────────── */
+
+.home-greeting {
+  color: var(--text-dim);
+  font-size: 14px;
+  padding-bottom: 4px;
+}
+
+.home-team-badge {
+  display: inline-block;
+  background: var(--bg3);
+  color: var(--gold-light);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-bottom: 8px;
+}
+
+.home-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  padding: 8px 0 24px;
+}
+
+.home-tile {
+  background: var(--bg2);
+  border: 2px solid var(--bg3);
+  border-radius: var(--radius);
+  padding: 28px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.home-tile:active { border-color: var(--gold); }
+
+.home-tile-icon {
+  font-size: 36px;
+  margin-bottom: 8px;
+}
+
+.home-tile-label {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+
+.home-tile-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.logout-link {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 12px;
+  text-decoration: underline;
+}
+
+/* ── Dashboard ───────────────────────────────────────────── */
+
+.dash-scroll {
+  overflow-x: auto;
+  flex: 1;
+  padding-bottom: 24px;
+}
+
+.dash-toggle {
+  display: flex;
+  gap: 0;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.dash-toggle-btn {
+  flex: 1;
+  padding: 10px 0;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 15px;
+  letter-spacing: 1px;
+  background: var(--bg2);
+  color: var(--text-dim);
+  border: 2px solid var(--bg3);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.dash-toggle-btn:first-child { border-radius: 8px 0 0 8px; }
+.dash-toggle-btn:last-child { border-radius: 0 8px 8px 0; }
+
+.dash-toggle-btn.active {
+  background: var(--gold);
+  color: var(--bg);
+  border-color: var(--gold);
+}
+
+.dash-table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 320px;
+}
+
+.dash-table th, .dash-table td {
+  padding: 10px 12px;
+  text-align: center;
+  font-size: 14px;
+  border-bottom: 1px solid var(--bg3);
+  white-space: nowrap;
+}
+
+.dash-table th {
+  font-family: 'Bebas Neue', sans-serif;
+  color: var(--gold);
+  font-size: 15px;
+  letter-spacing: 1px;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+}
+
+.dash-table th:first-child,
+.dash-table td:first-child {
+  text-align: left;
+  font-weight: 600;
+  position: sticky;
+  left: 0;
+  background: var(--bg);
+  z-index: 1;
+}
+
+.dash-table td { color: var(--text-dim); }
+.dash-cell-val { color: var(--text); font-weight: 700; font-size: 16px; }
+
+.dash-empty {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 48px 0;
+  font-size: 15px;
+}
+
+/* ── Log Action ──────────────────────────────────────────── */
+
+.log-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding-bottom: 24px;
+}
+
+.log-card {
+  background: var(--bg2);
+  border: 2px solid var(--bg3);
+  border-radius: var(--radius);
+  padding: 20px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.1s;
+}
+
+.log-card:active {
+  border-color: var(--green);
+  transform: scale(0.96);
+}
+
+.log-card-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  color: var(--gold);
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+
+.log-card-plus {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--bg);
+  font-size: 28px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.log-card-count {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.log-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--text-dim);
+  padding: 32px 0;
+}
+
+.log-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--green);
+  color: #fff;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s;
+  z-index: 100;
+}
+
+.log-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── Categories ──────────────────────────────────────────── */
+
+.cat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 16px;
+}
+
+.cat-item {
+  background: var(--bg2);
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cat-item-name {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.cat-item-by {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.cat-item-team {
+  font-size: 11px;
+  color: var(--gold-dim);
+  margin-top: 2px;
+}
+
+.cat-add-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px 0;
+  flex-shrink: 0;
+}
+
+.cat-input {
+  flex: 1;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-family: 'Barlow', sans-serif;
+  background: var(--bg2);
+  border: 2px solid var(--bg3);
+  border-radius: 8px;
+  color: var(--text);
+  outline: none;
+}
+
+.cat-input:focus { border-color: var(--gold); }
+
+.cat-add-btn {
+  padding: 12px 20px;
+  background: var(--gold);
+  color: var(--bg);
+  border: none;
+  border-radius: 8px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cat-add-btn:active { opacity: 0.7; }
+
+.cat-empty {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 32px 0;
+}
+
+/* ── Activity ────────────────────────────────────────────── */
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 24px;
+}
+
+.activity-item {
+  background: var(--bg2);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.activity-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.activity-person {
+  font-weight: 700;
+  color: var(--gold-light);
+  font-size: 14px;
+}
+
+.activity-time {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.activity-detail {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.activity-empty {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 48px 0;
+}
+
+/* ── Loading spinner ─────────────────────────────────────── */
+
+.spinner {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--bg3);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-center {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+
+/* ── Refresh indicator ───────────────────────────────────── */
+
+.refresh-btn {
+  background: none;
+  border: none;
+  color: var(--gold-dim);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.refresh-btn:active { opacity: 0.5; }
+.refresh-btn.spinning { animation: spin 0.7s linear infinite; }
+
+/* ── Admin-only elements (hidden for non-admins) ── */
+
+body:not(.is-admin) .admin-only { display: none !important; }
+
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════
+     LOGIN SCREEN
+     ══════════════════════════════════════════════════════════════ -->
+<div id="login-screen" class="screen active">
+  <div class="login-title">TeamTrack</div>
+  <div class="login-subtitle">Team KPI Tracking</div>
+  <input id="login-name" class="login-input" type="text" placeholder="Enter your name" maxlength="30" autocomplete="off">
+  <button id="login-go" class="login-btn" disabled>JOIN</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     TEAM SELECT SCREEN
+     ══════════════════════════════════════════════════════════════ -->
+<div id="team-screen" class="screen">
+  <div class="team-heading">Pick Your Team</div>
+  <div class="team-sub">Join an existing team or create a new one</div>
+  <div class="team-list" id="team-list">
+    <div class="team-loading">Loading teams...</div>
+  </div>
+  <div class="team-divider admin-only">— or —</div>
+  <div class="team-create-row admin-only">
+    <input id="team-new-name" class="team-create-input" type="text" placeholder="New team name" maxlength="30" autocomplete="off">
+    <button class="team-create-btn" onclick="createTeam()">CREATE</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     HOME SCREEN
+     ══════════════════════════════════════════════════════════════ -->
+<div id="home-screen" class="screen">
+  <div class="header">
+    <h1>TeamTrack</h1>
+  </div>
+  <div class="home-greeting" id="home-greeting"></div>
+  <div class="home-team-badge" id="home-team-badge"></div>
+  <div class="home-grid">
+    <div class="home-tile" onclick="goTo('dashboard')">
+      <div class="home-tile-icon">&#128202;</div>
+      <div class="home-tile-label">Dashboard</div>
+      <div class="home-tile-desc">Team overview</div>
+    </div>
+    <div class="home-tile" onclick="goTo('log')">
+      <div class="home-tile-icon">&#10133;</div>
+      <div class="home-tile-label">Log Action</div>
+      <div class="home-tile-desc">Track a KPI</div>
+    </div>
+    <div class="home-tile admin-only" onclick="goTo('categories')">
+      <div class="home-tile-icon">&#128193;</div>
+      <div class="home-tile-label">Categories</div>
+      <div class="home-tile-desc">Manage KPIs</div>
+    </div>
+    <div class="home-tile" onclick="goTo('activity')">
+      <div class="home-tile-icon">&#128240;</div>
+      <div class="home-tile-label">Activity</div>
+      <div class="home-tile-desc">Recent logs</div>
+    </div>
+  </div>
+  <div class="logout-link" onclick="logout()">Switch user</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     DASHBOARD SCREEN
+     ══════════════════════════════════════════════════════════════ -->
+<div id="dash-screen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goTo('home')">&#9664; Back</button>
+    <h1>Dashboard</h1>
+    <button class="refresh-btn" id="dash-refresh" onclick="loadDashboard()">&#8635;</button>
+  </div>
+  <div class="dash-toggle">
+    <button class="dash-toggle-btn active" id="dash-toggle-team" onclick="setDashMode('team')">Team Totals</button>
+    <button class="dash-toggle-btn" id="dash-toggle-individual" onclick="setDashMode('individual')">Individual</button>
+  </div>
+  <div class="dash-scroll" id="dash-content">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     LOG ACTION SCREEN
+     ══════════════════════════════════════════════════════════════ -->
+<div id="log-screen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goTo('home')">&#9664; Back</button>
+    <h1>Log Action</h1>
+    <button class="refresh-btn" id="log-refresh" onclick="loadLogCards()">&#8635;</button>
+  </div>
+  <div class="log-cards" id="log-cards">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+</div>
+<div class="log-toast" id="log-toast"></div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     CATEGORIES SCREEN
+     ══════════════════════════════════════════════════════════════ -->
+<div id="cat-screen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goTo('home')">&#9664; Back</button>
+    <h1>Categories</h1>
+    <button class="refresh-btn" id="cat-refresh" onclick="loadCategories()">&#8635;</button>
+  </div>
+  <div class="cat-list" id="cat-list">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+  <div class="cat-add-row">
+    <input id="cat-new-name" class="cat-input" type="text" placeholder="New category name" maxlength="40">
+    <button class="cat-add-btn" onclick="createCategory()">ADD</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     ACTIVITY SCREEN
+     ══════════════════════════════════════════════════════════════ -->
+<div id="activity-screen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goTo('home')">&#9664; Back</button>
+    <h1>Activity</h1>
+    <button class="refresh-btn" id="act-refresh" onclick="loadActivity()">&#8635;</button>
+  </div>
+  <div class="activity-list" id="activity-list">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     JAVASCRIPT
+     ══════════════════════════════════════════════════════════════ -->
+<script>
+
+// ── Configuration ───────────────────────────────────────────
+// Replace this URL with your deployed Google Apps Script web app URL
+const API_URL = 'https://script.google.com/macros/s/AKfycbxfUmJX6zZFw7tgC6FD5ZTz0fQvCIM_4ncK1QxoCOfsjK-NCV1sVu1cHbZnH8CnUBO2/exec';
+
+// ── State ───────────────────────────────────────────────────
+let currentUser = localStorage.getItem('tt_user') || '';
+let currentTeamId = localStorage.getItem('tt_teamId') || '';
+let currentTeamName = localStorage.getItem('tt_teamName') || '';
+let currentScreen = 'login';
+let categoriesCache = [];
+let summaryCache = null;
+let teamsCache = [];
+let dashMode = 'team';
+const isAdmin = new URLSearchParams(window.location.search).has('admin');
+
+// ── Screen mapping ──────────────────────────────────────────
+const SCREENS = {
+  login:      'login-screen',
+  teamselect: 'team-screen',
+  home:       'home-screen',
+  dashboard:  'dash-screen',
+  log:        'log-screen',
+  categories: 'cat-screen',
+  activity:   'activity-screen'
+};
+
+// ── Init ────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  var nameInput = document.getElementById('login-name');
+  var goBtn = document.getElementById('login-go');
+
+  nameInput.addEventListener('input', function() {
+    goBtn.disabled = !nameInput.value.trim();
+  });
+
+  nameInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && nameInput.value.trim()) loginUser();
+  });
+
+  goBtn.addEventListener('click', loginUser);
+
+  document.getElementById('team-new-name').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && e.target.value.trim()) createTeam();
+  });
+
+  // Show admin-only elements when ?admin is in the URL
+  if (isAdmin) {
+    document.body.classList.add('is-admin');
+  }
+
+  // Auto-login if name and team are saved
+  if (currentUser && currentTeamId) {
+    goTo('home');
+  } else if (currentUser) {
+    goTo('teamselect');
+  }
+
+  // Register service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(function() {});
+  }
+});
+
+// ── Auth ────────────────────────────────────────────────────
+
+function loginUser() {
+  var name = document.getElementById('login-name').value.trim();
+  if (!name) return;
+  currentUser = name;
+  localStorage.setItem('tt_user', name);
+  goTo('teamselect');
+}
+
+function logout() {
+  currentUser = '';
+  currentTeamId = '';
+  currentTeamName = '';
+  localStorage.removeItem('tt_user');
+  localStorage.removeItem('tt_teamId');
+  localStorage.removeItem('tt_teamName');
+  document.getElementById('login-name').value = '';
+  document.getElementById('login-go').disabled = true;
+  goTo('login');
+}
+
+// ── Teams ───────────────────────────────────────────────────
+
+function loadTeamSelect() {
+  var el = document.getElementById('team-list');
+  el.innerHTML = '<div class="team-loading"><div class="spinner"></div></div>';
+
+  api('getTeams').then(function(teams) {
+    if (teams.error || !Array.isArray(teams)) {
+      el.innerHTML = '<div class="team-loading">Could not load teams</div>';
+      return;
+    }
+    teamsCache = teams;
+
+    if (!teams.length) {
+      el.innerHTML = '<div class="team-loading">No teams yet — create one below!</div>';
+      return;
+    }
+
+    var html = '';
+    teams.forEach(function(t) {
+      html += '<button class="team-btn" onclick="selectTeam(\'' + esc(t.id) + '\', \'' + esc(t.name) + '\')">' +
+        '<div class="team-btn-name">' + esc(t.name) + '</div>' +
+        '<div class="team-btn-by">Created by ' + esc(t.createdBy) + '</div>' +
+        '</button>';
+    });
+    el.innerHTML = html;
+  });
+}
+
+function selectTeam(teamId, teamName) {
+  currentTeamId = teamId;
+  currentTeamName = teamName;
+  localStorage.setItem('tt_teamId', teamId);
+  localStorage.setItem('tt_teamName', teamName);
+  api('registerMember', { name: currentUser, teamId: teamId });
+  goTo('home');
+}
+
+function createTeam() {
+  var input = document.getElementById('team-new-name');
+  var name = input.value.trim();
+  if (!name) return;
+
+  input.value = '';
+  api('addTeam', { name: name, person: currentUser }).then(function(res) {
+    if (res.ok) {
+      selectTeam(res.id, res.name);
+    } else {
+      showToast('Error: ' + (res.error || 'unknown'));
+    }
+  });
+}
+
+// ── Navigation ──────────────────────────────────────────────
+
+function goTo(screen) {
+  var prevEl = document.getElementById(SCREENS[currentScreen]);
+  var nextEl = document.getElementById(SCREENS[screen]);
+  if (!nextEl) return;
+
+  if (prevEl) {
+    prevEl.classList.remove('active');
+  }
+  nextEl.classList.add('active');
+  currentScreen = screen;
+
+  // Load data for the screen
+  switch (screen) {
+    case 'home':
+      document.getElementById('home-greeting').textContent = 'Hello, ' + currentUser;
+      document.getElementById('home-team-badge').textContent = currentTeamName;
+      break;
+    case 'teamselect':
+      loadTeamSelect();
+      break;
+    case 'dashboard':
+      loadDashboard();
+      break;
+    case 'log':
+      loadLogCards();
+      break;
+    case 'categories':
+      loadCategories();
+      break;
+    case 'activity':
+      loadActivity();
+      break;
+  }
+}
+
+// ── API helper ──────────────────────────────────────────────
+
+function api(action, params) {
+  var url = API_URL + '?action=' + encodeURIComponent(action);
+  if (params) {
+    Object.keys(params).forEach(function(k) {
+      url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+    });
+  }
+  return fetch(url, { redirect: 'follow', mode: 'cors' })
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .catch(function(err) {
+      console.error('API error:', err);
+      return { error: err.message };
+    });
+}
+
+// ── Dashboard ───────────────────────────────────────────────
+
+function setDashMode(mode) {
+  dashMode = mode;
+  document.getElementById('dash-toggle-team').classList.toggle('active', mode === 'team');
+  document.getElementById('dash-toggle-individual').classList.toggle('active', mode === 'individual');
+  renderDashboard();
+}
+
+function loadDashboard() {
+  var el = document.getElementById('dash-content');
+  var btn = document.getElementById('dash-refresh');
+  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  btn.classList.add('spinning');
+
+  api('getSummary', { teamId: currentTeamId }).then(function(data) {
+    btn.classList.remove('spinning');
+    if (data.error || !data.categories) {
+      el.innerHTML = '<div class="dash-empty">Could not load data</div>';
+      return;
+    }
+    summaryCache = data;
+    renderDashboard();
+  });
+}
+
+function renderDashboard() {
+  var el = document.getElementById('dash-content');
+  var data = summaryCache;
+  if (!data) return;
+
+  if (!data.categories.length || !data.members.length) {
+    el.innerHTML = '<div class="dash-empty">No data yet. Log some actions first!</div>';
+    return;
+  }
+
+  if (dashMode === 'team') {
+    // Team Totals: one row with aggregate totals across all members
+    var html = '<table class="dash-table"><thead><tr><th>KPI</th><th>Team Total</th></tr></thead><tbody>';
+    data.categories.forEach(function(c) {
+      var total = 0;
+      data.members.forEach(function(m) {
+        total += (data.totals[m] && data.totals[m][c.id]) || 0;
+      });
+      html += '<tr><td>' + esc(c.name) + '</td><td><span class="dash-cell-val">' + total + '</span></td></tr>';
+    });
+    html += '</tbody></table>';
+    el.innerHTML = html;
+  } else {
+    // Individual: members as rows, categories as columns
+    var html = '<table class="dash-table"><thead><tr><th>Member</th>';
+    data.categories.forEach(function(c) {
+      html += '<th>' + esc(c.name) + '</th>';
+    });
+    html += '<th>Total</th></tr></thead><tbody>';
+
+    data.members.forEach(function(m) {
+      html += '<tr><td>' + esc(m) + '</td>';
+      var rowTotal = 0;
+      data.categories.forEach(function(c) {
+        var v = (data.totals[m] && data.totals[m][c.id]) || 0;
+        rowTotal += v;
+        html += '<td><span class="dash-cell-val">' + v + '</span></td>';
+      });
+      html += '<td><span class="dash-cell-val">' + rowTotal + '</span></td></tr>';
+    });
+
+    html += '</tbody></table>';
+    el.innerHTML = html;
+  }
+}
+
+// ── Log Action ──────────────────────────────────────────────
+
+function loadLogCards() {
+  var el = document.getElementById('log-cards');
+  var btn = document.getElementById('log-refresh');
+  el.innerHTML = '<div class="loading-center" style="grid-column:1/-1"><div class="spinner"></div></div>';
+  btn.classList.add('spinning');
+
+  api('getCategories', { teamId: currentTeamId }).then(function(cats) {
+    btn.classList.remove('spinning');
+    if (cats.error || !Array.isArray(cats)) {
+      el.innerHTML = '<div class="log-empty">Could not load categories</div>';
+      return;
+    }
+    categoriesCache = cats;
+
+    if (!cats.length) {
+      el.innerHTML = '<div class="log-empty">No categories yet. Create one first!</div>';
+      return;
+    }
+
+    var html = '';
+    cats.forEach(function(c) {
+      html += '<div class="log-card" onclick="logAction(\'' + esc(c.id) + '\', \'' + esc(c.name) + '\')">' +
+        '<div class="log-card-name">' + esc(c.name) + '</div>' +
+        '<div class="log-card-plus">+</div>' +
+        '<div class="log-card-count">Tap to log +1</div>' +
+        '</div>';
+    });
+    el.innerHTML = html;
+  });
+}
+
+function logAction(catId, catName) {
+  api('addLog', { person: currentUser, categoryId: catId, count: 1 }).then(function(res) {
+    if (res.ok) {
+      showToast('+1 ' + catName);
+    } else {
+      showToast('Error: ' + (res.error || 'unknown'));
+    }
+  });
+}
+
+function showToast(msg) {
+  var el = document.getElementById('log-toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(function() { el.classList.remove('show'); }, 1500);
+}
+
+// ── Categories ──────────────────────────────────────────────
+
+function loadCategories() {
+  var el = document.getElementById('cat-list');
+  var btn = document.getElementById('cat-refresh');
+  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  btn.classList.add('spinning');
+
+  api('getCategories', { teamId: currentTeamId }).then(function(cats) {
+    btn.classList.remove('spinning');
+    if (cats.error || !Array.isArray(cats)) {
+      el.innerHTML = '<div class="cat-empty">Could not load categories</div>';
+      return;
+    }
+    categoriesCache = cats;
+
+    if (!cats.length) {
+      el.innerHTML = '<div class="cat-empty">No categories yet. Add one below!</div>';
+      return;
+    }
+
+    var html = '';
+    cats.forEach(function(c) {
+      html += '<div class="cat-item">' +
+        '<div><span class="cat-item-name">' + esc(c.name) + '</span>' +
+        (c.teamId ? '' : '<div class="cat-item-team">Shared (no team)</div>') +
+        '</div>' +
+        '<span class="cat-item-by">by ' + esc(c.createdBy) + '</span>' +
+        '</div>';
+    });
+    el.innerHTML = html;
+  });
+}
+
+function createCategory() {
+  var input = document.getElementById('cat-new-name');
+  var name = input.value.trim();
+  if (!name) return;
+
+  input.value = '';
+  api('addCategory', { name: name, person: currentUser, teamId: currentTeamId }).then(function(res) {
+    if (res.ok) {
+      showToast('Created: ' + name);
+      loadCategories();
+    } else {
+      showToast('Error: ' + (res.error || 'unknown'));
+    }
+  });
+}
+
+// ── Activity ────────────────────────────────────────────────
+
+function loadActivity() {
+  var el = document.getElementById('activity-list');
+  var btn = document.getElementById('act-refresh');
+  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  btn.classList.add('spinning');
+
+  api('getLogs', { limit: 50, teamId: currentTeamId }).then(function(logs) {
+    btn.classList.remove('spinning');
+    if (logs.error || !Array.isArray(logs)) {
+      el.innerHTML = '<div class="activity-empty">Could not load activity</div>';
+      return;
+    }
+
+    if (!logs.length) {
+      el.innerHTML = '<div class="activity-empty">No activity yet</div>';
+      return;
+    }
+
+    var html = '';
+    logs.forEach(function(log) {
+      var t = formatTime(log.timestamp);
+      html += '<div class="activity-item">' +
+        '<div class="activity-top">' +
+        '<span class="activity-person">' + esc(log.person) + '</span>' +
+        '<span class="activity-time">' + t + '</span>' +
+        '</div>' +
+        '<div class="activity-detail">+' + log.count + ' ' + esc(log.categoryName) + '</div>' +
+        '</div>';
+    });
+    el.innerHTML = html;
+  });
+}
+
+// ── Utilities ───────────────────────────────────────────────
+
+function esc(str) {
+  if (!str) return '';
+  var d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function formatTime(ts) {
+  if (!ts) return '';
+  var d = new Date(ts);
+  if (isNaN(d.getTime())) return ts;
+  var now = new Date();
+  var diff = now - d;
+
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+  if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+  if (diff < 604800000) return Math.floor(diff / 86400000) + 'd ago';
+
+  return d.toLocaleDateString();
+}
+
+</script>
+</body>
+</html>
