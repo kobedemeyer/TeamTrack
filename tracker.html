@@ -817,6 +817,98 @@ html, body {
 
 body:not(.is-admin) .admin-only { display: none !important; }
 
+/* ── Delete buttons (admin-only) ────────────────────────── */
+
+.activity-delete-btn {
+  background: none;
+  border: none;
+  color: var(--red);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.activity-delete-btn:active { opacity: 0.5; }
+
+.cat-delete-btn {
+  background: none;
+  border: none;
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.cat-delete-btn:active { opacity: 0.5; }
+
+.manage-delete-btn {
+  background: var(--red);
+  color: #fff;
+  border: none;
+  font-family: 'Barlow', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-left: 4px;
+}
+.manage-delete-btn:active { opacity: 0.6; }
+
+/* ── All Teams screen ───────────────────────────────────── */
+
+.allteams-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 24px;
+}
+
+.allteams-card {
+  background: var(--bg2);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.allteams-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.allteams-card-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+
+.allteams-card-count {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.allteams-card-by {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.allteams-member-chip {
+  display: inline-block;
+  background: var(--bg3);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 13px;
+  margin: 2px 4px 2px 0;
+}
+
 </style>
 </head>
 <body>
@@ -881,6 +973,11 @@ body:not(.is-admin) .admin-only { display: none !important; }
       <div class="home-tile-icon">&#128240;</div>
       <div class="home-tile-label">Activity</div>
       <div class="home-tile-desc">Recent logs</div>
+    </div>
+    <div class="home-tile admin-only" onclick="goTo('allteams')">
+      <div class="home-tile-icon">&#127760;</div>
+      <div class="home-tile-label">All Teams</div>
+      <div class="home-tile-desc">Every team</div>
     </div>
   </div>
   <div class="logout-link" onclick="logout()">Switch user</div>
@@ -985,6 +1082,19 @@ body:not(.is-admin) .admin-only { display: none !important; }
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════
+     ALL TEAMS SCREEN (admin-only)
+     ══════════════════════════════════════════════════════════════ -->
+<div id="allteams-screen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goTo('home')">&#9664; Back</button>
+    <h1>All Teams</h1>
+  </div>
+  <div class="allteams-list" id="allteams-list">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
      JAVASCRIPT
      ══════════════════════════════════════════════════════════════ -->
 <script>
@@ -1014,7 +1124,8 @@ const SCREENS = {
   categories: 'cat-screen',
   activity:   'activity-screen',
   profile:    'profile-screen',
-  manageteam: 'manage-team-screen'
+  manageteam: 'manage-team-screen',
+  allteams:   'allteams-screen'
 };
 
 // ── Init ────────────────────────────────────────────────────
@@ -1253,6 +1364,9 @@ function goTo(screen) {
     case 'manageteam':
       loadManageTeam();
       break;
+    case 'allteams':
+      loadAllTeams();
+      break;
   }
 }
 
@@ -1449,9 +1563,30 @@ function loadCategories() {
         (c.teamId ? '' : '<div class="cat-item-team">Shared (no team)</div>') +
         '</div>' +
         '<span class="cat-item-by">by ' + esc(c.createdBy) + '</span>' +
+        '<button class="cat-delete-btn admin-only" data-cat-id="' + esc(c.id) + '" data-cat-name="' + esc(c.name) + '">&#10005;</button>' +
         '</div>';
     });
     el.innerHTML = html;
+
+    // Attach delete handlers
+    el.querySelectorAll('.cat-delete-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var catName = btn.dataset.catName;
+        var catId = btn.dataset.catId;
+        if (!confirm('Delete category "' + catName + '"?')) return;
+        btn.disabled = true;
+        api('deleteCategory', { categoryId: catId }).then(function(res) {
+          if (res.ok) {
+            showToast('Deleted: ' + catName);
+            loadCategories();
+          } else {
+            showToast('Error: ' + (res.error || 'unknown'));
+            btn.disabled = false;
+          }
+        });
+      });
+    });
   });
 }
 
@@ -1498,11 +1633,32 @@ function loadActivity() {
         '<div class="activity-top">' +
         '<span class="activity-person">' + esc(log.person) + '</span>' +
         '<span class="activity-time">' + t + '</span>' +
+        '<button class="activity-delete-btn admin-only" data-ts="' + esc(log.timestamp) + '" data-person="' + esc(log.person) + '">&#10005;</button>' +
         '</div>' +
         '<div class="activity-detail">+' + log.count + ' ' + esc(log.categoryName) + '</div>' +
         '</div>';
     });
     el.innerHTML = html;
+
+    // Attach delete handlers
+    el.querySelectorAll('.activity-delete-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var ts = btn.dataset.ts;
+        var person = btn.dataset.person;
+        if (!confirm('Delete this log by ' + person + '?')) return;
+        btn.disabled = true;
+        api('deleteLog', { timestamp: ts, person: person }).then(function(res) {
+          if (res.ok) {
+            btn.closest('.activity-item').remove();
+            showToast('Log deleted');
+          } else {
+            showToast('Error: ' + (res.error || 'unknown'));
+            btn.disabled = false;
+          }
+        });
+      });
+    });
   });
 }
 
@@ -1652,6 +1808,7 @@ function loadManageTeam() {
           '<div class="manage-member-avatar" style="background:' + color + '">' + esc(initials) + '</div>' +
           '<div class="manage-member-name">' + esc(m.name) + '</div>' +
           '<button class="manage-remove-btn" onclick="removeMember(\'' + esc(m.name) + '\')">Remove</button>' +
+          '<button class="manage-delete-btn admin-only" onclick="fullDeleteMember(\'' + esc(m.name) + '\')">Delete</button>' +
           '</div>';
       });
     });
@@ -1668,6 +1825,83 @@ function removeMember(name) {
     } else {
       showToast('Error: ' + (res.error || 'unknown'));
     }
+  });
+}
+
+function fullDeleteMember(name) {
+  if (!confirm('Permanently delete ' + name + ' from the app? This cannot be undone.')) return;
+  api('deleteMember', { name: name }).then(function(res) {
+    if (res.ok) {
+      showToast(name + ' deleted');
+      loadManageTeam();
+    } else {
+      showToast('Error: ' + (res.error || 'unknown'));
+    }
+  });
+}
+
+// ── All Teams ───────────────────────────────────────────────
+
+function loadAllTeams() {
+  var el = document.getElementById('allteams-list');
+  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+
+  Promise.all([api('getTeams'), api('getAllMembers')]).then(function(results) {
+    var teams = results[0];
+    var members = results[1];
+
+    if (!Array.isArray(teams) || !Array.isArray(members)) {
+      el.innerHTML = '<div class="activity-empty">Could not load data</div>';
+      return;
+    }
+
+    // Group members by teamId
+    var membersByTeam = {};
+    members.forEach(function(m) {
+      var tid = m.teamId || '__none__';
+      if (!membersByTeam[tid]) membersByTeam[tid] = [];
+      membersByTeam[tid].push(m);
+    });
+
+    if (!teams.length) {
+      el.innerHTML = '<div class="activity-empty">No teams found</div>';
+      return;
+    }
+
+    var html = '';
+    teams.forEach(function(t) {
+      var teamMembers = membersByTeam[t.id] || [];
+      html += '<div class="allteams-card">' +
+        '<div class="allteams-card-header">' +
+        '<span class="allteams-card-name">' + esc(t.name) + '</span>' +
+        '<span class="allteams-card-count">' + teamMembers.length + ' member' + (teamMembers.length !== 1 ? 's' : '') + '</span>' +
+        '</div>' +
+        '<div class="allteams-card-by">Created by ' + esc(t.createdBy) + '</div>' +
+        '<div>';
+      teamMembers.forEach(function(m) {
+        html += '<span class="allteams-member-chip">' + esc(m.name) + '</span>';
+      });
+      if (!teamMembers.length) {
+        html += '<span style="color:var(--text-dim);font-size:13px">No members</span>';
+      }
+      html += '</div></div>';
+    });
+
+    // Show unassigned members if any
+    var unassigned = membersByTeam['__none__'] || [];
+    if (unassigned.length) {
+      html += '<div class="allteams-card">' +
+        '<div class="allteams-card-header">' +
+        '<span class="allteams-card-name">No Team</span>' +
+        '<span class="allteams-card-count">' + unassigned.length + ' member' + (unassigned.length !== 1 ? 's' : '') + '</span>' +
+        '</div><div>';
+      unassigned.forEach(function(m) {
+        html += '<span class="allteams-member-chip">' + esc(m.name) + '</span>';
+      });
+      html += '</div></div>';
+    }
+
+    el.innerHTML = html;
   });
 }
 

@@ -56,6 +56,15 @@ function doGet(e) {
       case 'removeMemberFromTeam':
         result = removeMemberFromTeam(e.parameter.name);
         break;
+      case 'deleteLog':
+        result = deleteLog(e.parameter.timestamp, e.parameter.person);
+        break;
+      case 'deleteCategory':
+        result = deleteCategory(e.parameter.categoryId);
+        break;
+      case 'deleteMember':
+        result = deleteMember(e.parameter.name);
+        break;
       default:
         result = { error: 'Unknown action: ' + action };
     }
@@ -389,6 +398,57 @@ function getAllMembers() {
       teamName: tid ? (teamNames[tid] || 'Unknown team') : 'No team'
     };
   });
+}
+
+function deleteLog(timestamp, person) {
+  if (!timestamp || !person) return { error: 'Missing timestamp or person' };
+
+  var sheet = SS.getSheetByName('Logs');
+  if (!sheet) return { error: 'Logs sheet not found' };
+  var data = sheet.getDataRange().getValues();
+  var trimmedPerson = person.trim().toLowerCase();
+
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0].toString() === timestamp &&
+        data[i][1].toString().toLowerCase() === trimmedPerson) {
+      sheet.deleteRow(i + 1);
+      return { ok: true };
+    }
+  }
+  return { error: 'Log not found' };
+}
+
+function deleteCategory(categoryId) {
+  if (!categoryId) return { error: 'Missing categoryId' };
+
+  var sheet = SS.getSheetByName('Categories');
+  if (!sheet) return { error: 'Categories sheet not found' };
+  var data = sheet.getDataRange().getValues();
+
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0].toString() === categoryId) {
+      sheet.deleteRow(i + 1);
+      return { ok: true };
+    }
+  }
+  return { error: 'Category not found' };
+}
+
+function deleteMember(name) {
+  if (!name) return { error: 'Missing name' };
+
+  var sheet = SS.getSheetByName('Members');
+  if (!sheet) return { error: 'Members sheet not found' };
+  var data = sheet.getDataRange().getValues();
+  var trimmed = name.trim().toLowerCase();
+
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0].toString().toLowerCase() === trimmed) {
+      sheet.deleteRow(i + 1);
+      return { ok: true };
+    }
+  }
+  return { error: 'Member not found' };
 }
 
 function removeMemberFromTeam(name) {
