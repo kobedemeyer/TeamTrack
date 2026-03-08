@@ -65,6 +65,9 @@ function doGet(e) {
       case 'deleteMember':
         result = deleteMember(e.parameter.name);
         break;
+      case 'moveMemberToTeam':
+        result = moveMemberToTeam(e.parameter.name, e.parameter.teamId);
+        break;
       default:
         result = { error: 'Unknown action: ' + action };
     }
@@ -445,6 +448,23 @@ function deleteMember(name) {
   for (var i = 1; i < data.length; i++) {
     if (data[i][0].toString().toLowerCase() === trimmed) {
       sheet.deleteRow(i + 1);
+      return { ok: true };
+    }
+  }
+  return { error: 'Member not found' };
+}
+
+function moveMemberToTeam(name, teamId) {
+  if (!name || !teamId) return { error: 'Missing name or teamId' };
+
+  var sheet = SS.getSheetByName('Members');
+  if (!sheet) return { error: 'Members sheet not found' };
+  var data = sheet.getDataRange().getValues();
+  var trimmed = name.trim().toLowerCase();
+
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0].toString().toLowerCase() === trimmed) {
+      sheet.getRange(i + 1, 3).setValue(teamId);
       return { ok: true };
     }
   }

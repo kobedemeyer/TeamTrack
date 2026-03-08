@@ -860,6 +860,56 @@ body:not(.is-admin) .admin-only { display: none !important; }
 }
 .manage-delete-btn:active { opacity: 0.6; }
 
+.manage-move-btn {
+  background: none;
+  border: 2px solid var(--gold);
+  color: var(--gold);
+  font-family: 'Barlow', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-left: 4px;
+}
+.manage-move-btn:active { opacity: 0.6; }
+
+.manage-move-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.manage-move-picker select {
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--bg2);
+  background: var(--bg);
+  color: var(--text);
+}
+.manage-move-picker button {
+  background: var(--gold);
+  color: #fff;
+  border: none;
+  font-family: 'Barlow', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.manage-move-picker button:active { opacity: 0.6; }
+.manage-move-picker .move-cancel {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
 /* ── All Teams screen ───────────────────────────────────── */
 
 .allteams-list {
@@ -1769,11 +1819,18 @@ function changePassword() {
 
 // ── Manage Team ─────────────────────────────────────────────
 
+var cachedTeamsList = [];
+
 function loadManageTeam() {
   var el = document.getElementById('manage-team-list');
   el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
 
-  api('getAllMembers').then(function(members) {
+  Promise.all([api('getAllMembers'), api('getTeams')]).then(function(results) {
+    var members = results[0];
+    var teams = results[1];
+
+    cachedTeamsList = Array.isArray(teams) ? teams : [];
+
     if (members.error || !Array.isArray(members)) {
       el.innerHTML = '<div class="manage-empty">Could not load members</div>';
       return;
@@ -1804,15 +1861,63 @@ function loadManageTeam() {
       groups[teamName].forEach(function(m) {
         var initials = getInitials(m.name);
         var color = getAvatarColor(m.name);
-        html += '<div class="manage-member-row">' +
+        var safeName = esc(m.name).replace(/'/g, "\\'");
+        html += '<div class="manage-member-row" id="mmr-' + esc(m.name) + '">' +
           '<div class="manage-member-avatar" style="background:' + color + '">' + esc(initials) + '</div>' +
           '<div class="manage-member-name">' + esc(m.name) + '</div>' +
-          '<button class="manage-remove-btn" onclick="removeMember(\'' + esc(m.name) + '\')">Remove</button>' +
-          '<button class="manage-delete-btn admin-only" onclick="fullDeleteMember(\'' + esc(m.name) + '\')">Delete</button>' +
+          '<span class="manage-member-actions">' +
+          '<button class="manage-move-btn admin-only" onclick="startMoveMember(\'' + safeName + '\',\'' + esc(m.teamId) + '\')">Move</button>' +
+          '<button class="manage-remove-btn" onclick="removeMember(\'' + safeName + '\')">Remove</button>' +
+          '<button class="manage-delete-btn admin-only" onclick="fullDeleteMember(\'' + safeName + '\')">Delete</button>' +
+          '</span>' +
           '</div>';
       });
     });
     el.innerHTML = html;
+  });
+}
+
+function startMoveMember(name, currentTeamId) {
+  var row = document.getElementById('mmr-' + name);
+  if (!row) return;
+  var actionsEl = row.querySelector('.manage-member-actions');
+  if (!actionsEl) return;
+
+  var options = '';
+  cachedTeamsList.forEach(function(t) {
+    if (t.id !== currentTeamId) {
+      options += '<option value="' + esc(t.id) + '">' + esc(t.name) + '</option>';
+    }
+  });
+
+  if (!options) {
+    showToast('No other teams available');
+    return;
+  }
+
+  var safeName = name.replace(/'/g, "\\'");
+  actionsEl.innerHTML =
+    '<div class="manage-move-picker">' +
+    '<select id="move-select-' + esc(name) + '">' + options + '</select>' +
+    '<button onclick="doMoveMember(\'' + safeName + '\')">Go</button>' +
+    '<button class="move-cancel" onclick="loadManageTeam()">Cancel</button>' +
+    '</div>';
+}
+
+function doMoveMember(name) {
+  var sel = document.getElementById('move-select-' + name);
+  if (!sel) return;
+  var teamId = sel.value;
+  if (!teamId) return;
+  var teamName = sel.options[sel.selectedIndex].text;
+
+  api('moveMemberToTeam', { name: name, teamId: teamId }).then(function(res) {
+    if (res.ok) {
+      showToast(name + ' moved to ' + teamName);
+      loadManageTeam();
+    } else {
+      showToast('Error: ' + (res.error || 'unknown'));
+    }
   });
 }
 
