@@ -445,13 +445,6 @@ html, body {
   border-radius: var(--radius);
   padding: 20px 12px;
   text-align: center;
-  cursor: pointer;
-  transition: border-color 0.2s, transform 0.1s;
-}
-
-.log-card:active {
-  border-color: var(--green);
-  transform: scale(0.96);
 }
 
 .log-card-name {
@@ -463,18 +456,38 @@ html, body {
   word-break: break-word;
 }
 
-.log-card-plus {
-  width: 48px;
-  height: 48px;
+.log-card-btns {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.log-card-plus, .log-card-minus {
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: var(--gold);
-  color: var(--bg);
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 4px;
+  border: none;
+  cursor: pointer;
+}
+
+.log-card-plus {
+  background: var(--gold);
+  color: var(--bg);
+}
+
+.log-card-minus {
+  background: var(--bg3);
+  color: var(--text-dim);
+}
+
+.log-card-plus:active, .log-card-minus:active {
+  transform: scale(0.9);
 }
 
 .log-card-count {
@@ -1707,15 +1720,23 @@ function loadLogCards() {
       var count = myTotals[c.id] || 0;
       html += '<div class="log-card" data-cat-id="' + esc(c.id) + '" data-cat-name="' + esc(c.name) + '">' +
         '<div class="log-card-name">' + esc(c.name) + '</div>' +
-        '<div class="log-card-plus">+</div>' +
+        '<div class="log-card-btns">' +
+        '<button class="log-card-minus">−</button>' +
+        '<button class="log-card-plus">+</button>' +
+        '</div>' +
         '<div class="log-card-count">You: ' + count + '</div>' +
         '</div>';
     });
     el.innerHTML = html;
 
     el.querySelectorAll('.log-card').forEach(function(card) {
-      card.addEventListener('click', function() {
+      card.querySelector('.log-card-plus').addEventListener('click', function(e) {
+        e.stopPropagation();
         logAction(card.dataset.catId, card.dataset.catName);
+      });
+      card.querySelector('.log-card-minus').addEventListener('click', function(e) {
+        e.stopPropagation();
+        logSubtract(card.dataset.catId, card.dataset.catName);
       });
     });
   });
@@ -1739,6 +1760,32 @@ function logAction(catId, catName) {
         var countEl = card.querySelector('.log-card-count');
         var cur = parseInt(countEl.textContent.replace('You: ', ''), 10) || 0;
         countEl.textContent = 'You: ' + Math.max(0, cur - 1);
+      }
+    }
+  });
+}
+
+function logSubtract(catId, catName) {
+  var card = document.querySelector('.log-card[data-cat-id="' + catId + '"]');
+  var countEl = card ? card.querySelector('.log-card-count') : null;
+  var cur = countEl ? parseInt(countEl.textContent.replace('You: ', ''), 10) || 0 : 0;
+
+  if (cur <= 0) {
+    showToast('Already at 0');
+    return;
+  }
+
+  // Optimistic UI
+  showToast('−1 ' + catName);
+  if (countEl) countEl.textContent = 'You: ' + (cur - 1);
+
+  api('addLog', { person: currentUser, categoryId: catId, count: -1 }).then(function(res) {
+    if (!res.ok) {
+      showToast('Error: ' + (res.error || 'unknown'));
+      // Revert on failure
+      if (countEl) {
+        var c = parseInt(countEl.textContent.replace('You: ', ''), 10) || 0;
+        countEl.textContent = 'You: ' + (c + 1);
       }
     }
   });
