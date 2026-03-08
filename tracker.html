@@ -1272,18 +1272,24 @@ function loadLogCards() {
 }
 
 function logAction(catId, catName) {
+  // Optimistic: update UI instantly
+  showToast('+1 ' + catName);
+  var card = document.querySelector('.log-card[data-cat-id="' + catId + '"]');
+  if (card) {
+    var countEl = card.querySelector('.log-card-count');
+    var cur = parseInt(countEl.textContent.replace('You: ', ''), 10) || 0;
+    countEl.textContent = 'You: ' + (cur + 1);
+  }
+
   api('addLog', { person: currentUser, categoryId: catId, count: 1 }).then(function(res) {
-    if (res.ok) {
-      showToast('+1 ' + catName);
-      // Update the count on the card without full reload
-      var card = document.querySelector('.log-card[data-cat-id="' + catId + '"]');
+    if (!res.ok) {
+      showToast('Error: ' + (res.error || 'unknown'));
+      // Revert count on failure
       if (card) {
         var countEl = card.querySelector('.log-card-count');
         var cur = parseInt(countEl.textContent.replace('You: ', ''), 10) || 0;
-        countEl.textContent = 'You: ' + (cur + 1);
+        countEl.textContent = 'You: ' + Math.max(0, cur - 1);
       }
-    } else {
-      showToast('Error: ' + (res.error || 'unknown'));
     }
   });
 }
