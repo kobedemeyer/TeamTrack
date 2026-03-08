@@ -874,6 +874,7 @@ html, body {
 
 body:not(.is-admin) .admin-only { display: none !important; }
 body:not(.is-super-admin) .super-admin-only { display: none !important; }
+body.is-super-admin .non-super-admin-only { display: none !important; }
 
 /* ── Delete buttons (admin-only) ────────────────────────── */
 
@@ -1191,7 +1192,7 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
   </div>
   <div class="profile-header-area" onclick="goTo('profile')">
     <div class="home-greeting" id="home-greeting"></div>
-    <div class="home-team-badge" id="home-team-badge"></div>
+    <div class="home-team-badge non-super-admin-only" id="home-team-badge"></div>
     <select id="admin-team-switch" class="super-admin-only" onclick="event.stopPropagation()"></select>
   </div>
   <div class="home-grid">
