@@ -146,6 +146,16 @@ html, body {
 .login-btn:active { opacity: 0.7; }
 .login-btn:disabled { opacity: 0.4; cursor: default; }
 
+.login-hint {
+  font-size: 13px;
+  min-height: 20px;
+  margin-top: -4px;
+  margin-bottom: 4px;
+  text-align: center;
+}
+.login-hint.exists { color: var(--green); }
+.login-hint.new-user { color: var(--text-dim); }
+
 /* ── Team Select screen ──────────────────────────────────── */
 
 #team-screen {
@@ -796,6 +806,7 @@ body:not(.is-admin) .admin-only { display: none !important; }
   <div class="login-title">TeamTrack</div>
   <div class="login-subtitle">Team KPI Tracking</div>
   <input id="login-name" class="login-input" type="text" placeholder="Enter your name" maxlength="30" autocomplete="off">
+  <div id="login-hint" class="login-hint"></div>
   <button id="login-go" class="login-btn" disabled>JOIN</button>
 </div>
 
@@ -1023,9 +1034,36 @@ document.addEventListener('DOMContentLoaded', function() {
 function loginUser() {
   var name = document.getElementById('login-name').value.trim();
   if (!name) return;
-  currentUser = name;
-  localStorage.setItem('tt_user', name);
-  goTo('teamselect');
+
+  var btn = document.getElementById('login-go');
+  btn.disabled = true;
+  btn.textContent = '...';
+
+  api('checkName', { name: name }).then(function(res) {
+    btn.textContent = 'JOIN';
+    btn.disabled = false;
+
+    if (res.exists) {
+      // Returning user — restore their session
+      currentUser = res.name;
+      localStorage.setItem('tt_user', res.name);
+      if (res.teamId) {
+        currentTeamId = res.teamId;
+        currentTeamName = res.teamName;
+        localStorage.setItem('tt_teamId', res.teamId);
+        localStorage.setItem('tt_teamName', res.teamName);
+        goTo('home');
+      } else {
+        goTo('teamselect');
+      }
+    } else {
+      // New user — register and go to team select
+      currentUser = name;
+      localStorage.setItem('tt_user', name);
+      api('registerMember', { name: name });
+      goTo('teamselect');
+    }
+  });
 }
 
 function logout() {

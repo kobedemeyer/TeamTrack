@@ -44,6 +44,9 @@ function doGet(e) {
       case 'getAllMembers':
         result = getAllMembers();
         break;
+      case 'checkName':
+        result = checkName(e.parameter.name);
+        break;
       case 'removeMemberFromTeam':
         result = removeMemberFromTeam(e.parameter.name);
         break;
@@ -290,6 +293,33 @@ function getMembers(teamId) {
     }
   });
   return result;
+}
+
+function checkName(name) {
+  if (!name) return { error: 'Missing name' };
+
+  var sheet = SS.getSheetByName('Members');
+  if (!sheet) return { exists: false };
+  var data = sheet.getDataRange().getValues().slice(1);
+  var trimmed = name.trim().toLowerCase();
+
+  for (var i = 0; i < data.length; i++) {
+    if (data[i][0].toString().toLowerCase() === trimmed) {
+      var teamId = data[i][2] || '';
+      var teamName = '';
+      if (teamId) {
+        var teamsSheet = SS.getSheetByName('Teams');
+        if (teamsSheet) {
+          var teams = teamsSheet.getDataRange().getValues().slice(1);
+          for (var j = 0; j < teams.length; j++) {
+            if (teams[j][0] === teamId) { teamName = teams[j][1]; break; }
+          }
+        }
+      }
+      return { exists: true, name: data[i][0], teamId: teamId, teamName: teamName };
+    }
+  }
+  return { exists: false };
 }
 
 function getAllMembers() {
