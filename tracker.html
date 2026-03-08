@@ -1236,12 +1236,13 @@ function loadLogCards() {
   el.innerHTML = '<div class="loading-center" style="grid-column:1/-1"><div class="spinner"></div></div>';
   btn.classList.add('spinning');
 
-  api('getCategories', { teamId: currentTeamId }).then(function(cats) {
+  api('getSummary', { teamId: currentTeamId }).then(function(data) {
     btn.classList.remove('spinning');
-    if (cats.error || !Array.isArray(cats)) {
+    if (data.error || !data.categories) {
       el.innerHTML = '<div class="log-empty">Could not load categories</div>';
       return;
     }
+    var cats = data.categories;
     categoriesCache = cats;
 
     if (!cats.length) {
@@ -1249,12 +1250,15 @@ function loadLogCards() {
       return;
     }
 
+    var myTotals = (data.totals && data.totals[currentUser]) || {};
+
     var html = '';
     cats.forEach(function(c) {
+      var count = myTotals[c.id] || 0;
       html += '<div class="log-card" onclick="logAction(\'' + esc(c.id) + '\', \'' + esc(c.name) + '\')">' +
         '<div class="log-card-name">' + esc(c.name) + '</div>' +
         '<div class="log-card-plus">+</div>' +
-        '<div class="log-card-count">Tap to log +1</div>' +
+        '<div class="log-card-count">You: ' + count + '</div>' +
         '</div>';
     });
     el.innerHTML = html;
@@ -1265,6 +1269,15 @@ function logAction(catId, catName) {
   api('addLog', { person: currentUser, categoryId: catId, count: 1 }).then(function(res) {
     if (res.ok) {
       showToast('+1 ' + catName);
+      // Update the count on the card without full reload
+      var cards = document.querySelectorAll('.log-card');
+      cards.forEach(function(card) {
+        if (card.getAttribute('onclick').indexOf(catId) !== -1) {
+          var countEl = card.querySelector('.log-card-count');
+          var cur = parseInt(countEl.textContent.replace('You: ', ''), 10) || 0;
+          countEl.textContent = 'You: ' + (cur + 1);
+        }
+      });
     } else {
       showToast('Error: ' + (res.error || 'unknown'));
     }
