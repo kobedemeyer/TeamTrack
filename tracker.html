@@ -156,6 +156,28 @@ html, body {
 .login-hint.exists { color: var(--green); }
 .login-hint.new-user { color: var(--text-dim); }
 
+.login-error {
+  font-size: 13px;
+  color: var(--red);
+  text-align: center;
+  min-height: 18px;
+}
+
+.login-password {
+  width: min(300px, 80vw);
+  padding: 14px 18px;
+  font-size: 18px;
+  font-family: 'Barlow', sans-serif;
+  background: var(--bg2);
+  border: 2px solid var(--gold-dim);
+  border-radius: var(--radius);
+  color: var(--text);
+  text-align: center;
+  outline: none;
+  display: none;
+}
+.login-password:focus { border-color: var(--gold); }
+
 /* ── Team Select screen ──────────────────────────────────── */
 
 #team-screen {
@@ -807,6 +829,8 @@ body:not(.is-admin) .admin-only { display: none !important; }
   <div class="login-subtitle">Team KPI Tracking</div>
   <input id="login-name" class="login-input" type="text" placeholder="Enter your name" maxlength="30" autocomplete="off">
   <div id="login-hint" class="login-hint"></div>
+  <input id="login-password" class="login-password" type="password" placeholder="Enter password" maxlength="64" autocomplete="off">
+  <div id="login-error" class="login-error"></div>
   <button id="login-go" class="login-btn" disabled>JOIN</button>
 </div>
 
@@ -943,6 +967,7 @@ body:not(.is-admin) .admin-only { display: none !important; }
     <div class="profile-stat-card"><div class="profile-stat-val" id="profile-top-kpi">—</div><div class="profile-stat-label" id="profile-top-kpi-label">Top KPI</div></div>
     <div class="profile-stat-card"><div class="profile-stat-val" id="profile-since">—</div><div class="profile-stat-label">Member Since</div></div>
   </div>
+  <button id="profile-password-btn" class="profile-manage-btn" onclick="changePassword()">Set Password</button>
   <button class="profile-manage-btn admin-only" onclick="goTo('manageteam')">Manage Team</button>
 </div>
 
@@ -977,7 +1002,7 @@ let categoriesCache = [];
 let summaryCache = null;
 let teamsCache = [];
 let dashMode = 'team';
-const isAdmin = new URLSearchParams(window.location.search).has('admin');
+var isAdmin = new URLSearchParams(window.location.search).has('admin');
 
 // ── Screen mapping ──────────────────────────────────────────
 const SCREENS = {
@@ -1007,14 +1032,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
   goBtn.addEventListener('click', loginUser);
 
+  document.getElementById('login-password').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') loginUser();
+  });
+
   document.getElementById('team-new-name').addEventListener('keydown', function(e) {
     if (e.key === 'Enter' && e.target.value.trim()) createTeam();
   });
 
-  // Show admin-only elements when ?admin is in the URL
-  if (isAdmin) {
-    document.body.classList.add('is-admin');
-  }
+  // Show admin-only elements
+  updateAdminStatus();
 
   // Auto-login if name and team are saved
   if (currentUser && currentTeamId) {
@@ -1036,34 +1063,84 @@ function loginUser() {
   if (!name) return;
 
   var btn = document.getElementById('login-go');
+  var pwInput = document.getElementById('login-password');
+  var errorEl = document.getElementById('login-error');
+  errorEl.textContent = '';
   btn.disabled = true;
   btn.textContent = '...';
+
+  // If password field is visible, verify password first
+  if (pwInput.style.display === 'block') {
+    var password = pwInput.value;
+    api('verifyPassword', { name: name, password: password }).then(function(res) {
+      btn.textContent = 'JOIN';
+      btn.disabled = false;
+      if (res.ok) {
+        finishLogin(name, loginCheckData);
+      } else {
+        errorEl.textContent = res.error || 'Wrong password';
+        pwInput.value = '';
+        pwInput.focus();
+      }
+    });
+    return;
+  }
 
   api('checkName', { name: name }).then(function(res) {
     btn.textContent = 'JOIN';
     btn.disabled = false;
 
     if (res.exists) {
-      // Returning user — restore their session
-      currentUser = res.name;
-      localStorage.setItem('tt_user', res.name);
-      if (res.teamId) {
-        currentTeamId = res.teamId;
-        currentTeamName = res.teamName;
-        localStorage.setItem('tt_teamId', res.teamId);
-        localStorage.setItem('tt_teamName', res.teamName);
-        goTo('home');
-      } else {
-        goTo('teamselect');
+      if (res.hasPassword) {
+        // Show password field
+        loginCheckData = res;
+        pwInput.style.display = 'block';
+        pwInput.value = '';
+        pwInput.focus();
+        return;
       }
+      finishLogin(name, res);
     } else {
       // New user — register and go to team select
       currentUser = name;
       localStorage.setItem('tt_user', name);
+      updateAdminStatus();
       api('registerMember', { name: name });
       goTo('teamselect');
     }
   });
+}
+
+var loginCheckData = null;
+
+function updateAdminStatus() {
+  var urlAdmin = new URLSearchParams(window.location.search).has('admin');
+  var nameAdmin = currentUser && currentUser.toLowerCase() === 'kobe';
+  isAdmin = urlAdmin || nameAdmin;
+  if (isAdmin) {
+    document.body.classList.add('is-admin');
+  } else {
+    document.body.classList.remove('is-admin');
+  }
+}
+
+function finishLogin(name, res) {
+  document.getElementById('login-password').style.display = 'none';
+  document.getElementById('login-error').textContent = '';
+  loginCheckData = null;
+
+  currentUser = res.name;
+  localStorage.setItem('tt_user', res.name);
+  updateAdminStatus();
+  if (res.teamId) {
+    currentTeamId = res.teamId;
+    currentTeamName = res.teamName;
+    localStorage.setItem('tt_teamId', res.teamId);
+    localStorage.setItem('tt_teamName', res.teamName);
+    goTo('home');
+  } else {
+    goTo('teamselect');
+  }
 }
 
 function logout() {
@@ -1074,7 +1151,12 @@ function logout() {
   localStorage.removeItem('tt_teamId');
   localStorage.removeItem('tt_teamName');
   document.getElementById('login-name').value = '';
+  document.getElementById('login-password').style.display = 'none';
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-error').textContent = '';
   document.getElementById('login-go').disabled = true;
+  loginCheckData = null;
+  updateAdminStatus();
   goTo('login');
 }
 
@@ -1495,6 +1577,36 @@ function loadProfile() {
       document.getElementById('profile-since').textContent = isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
     } else {
       document.getElementById('profile-since').textContent = '—';
+    }
+  });
+
+  // Check password status for button label
+  api('checkName', { name: currentUser }).then(function(res) {
+    var btn = document.getElementById('profile-password-btn');
+    if (res.exists && res.hasPassword) {
+      btn.textContent = 'Change Password';
+    } else {
+      btn.textContent = 'Set Password';
+    }
+  });
+}
+
+function changePassword() {
+  var newPw = prompt('Enter new password (leave empty to remove password):');
+  if (newPw === null) return; // cancelled
+
+  api('setPassword', { name: currentUser, password: newPw }).then(function(res) {
+    if (res.ok) {
+      var btn = document.getElementById('profile-password-btn');
+      if (newPw) {
+        btn.textContent = 'Change Password';
+        alert('Password set successfully.');
+      } else {
+        btn.textContent = 'Set Password';
+        alert('Password removed.');
+      }
+    } else {
+      alert(res.error || 'Failed to set password.');
     }
   });
 }

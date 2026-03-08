@@ -47,6 +47,12 @@ function doGet(e) {
       case 'checkName':
         result = checkName(e.parameter.name);
         break;
+      case 'verifyPassword':
+        result = verifyPassword(e.parameter.name, e.parameter.password);
+        break;
+      case 'setPassword':
+        result = setPassword(e.parameter.name, e.parameter.password);
+        break;
       case 'removeMemberFromTeam':
         result = removeMemberFromTeam(e.parameter.name);
         break;
@@ -316,10 +322,48 @@ function checkName(name) {
           }
         }
       }
-      return { exists: true, name: data[i][0], teamId: teamId, teamName: teamName };
+      var hasPassword = !!(data[i][3]);
+      return { exists: true, name: data[i][0], teamId: teamId, teamName: teamName, hasPassword: hasPassword };
     }
   }
   return { exists: false };
+}
+
+function verifyPassword(name, password) {
+  if (!name) return { error: 'Missing name' };
+
+  var sheet = SS.getSheetByName('Members');
+  if (!sheet) return { error: 'Member not found' };
+  var data = sheet.getDataRange().getValues();
+  var trimmed = name.trim().toLowerCase();
+
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0].toString().toLowerCase() === trimmed) {
+      var stored = data[i][3] || '';
+      if (stored === password) {
+        return { ok: true };
+      }
+      return { error: 'Wrong password' };
+    }
+  }
+  return { error: 'Member not found' };
+}
+
+function setPassword(name, password) {
+  if (!name) return { error: 'Missing name' };
+
+  var sheet = SS.getSheetByName('Members');
+  if (!sheet) return { error: 'Members sheet not found' };
+  var data = sheet.getDataRange().getValues();
+  var trimmed = name.trim().toLowerCase();
+
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0].toString().toLowerCase() === trimmed) {
+      sheet.getRange(i + 1, 4).setValue(password || '');
+      return { ok: true };
+    }
+  }
+  return { error: 'Member not found' };
 }
 
 function getAllMembers() {
