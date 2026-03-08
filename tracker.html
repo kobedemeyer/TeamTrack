@@ -423,6 +423,50 @@ html, body {
 .dash-table td { color: var(--text-dim); }
 .dash-cell-val { color: var(--text); font-weight: 700; font-size: 16px; }
 
+.dash-cell-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.dash-cell-edit .dash-cell-val {
+  min-width: 20px;
+  cursor: pointer;
+  border-bottom: 1px dashed var(--gold-dim);
+}
+
+.dash-mini-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.dash-mini-btn.plus { background: var(--gold); color: #fff; }
+.dash-mini-btn.minus { background: var(--bg3); color: var(--text-dim); }
+.dash-mini-btn:active { opacity: 0.6; }
+
+.dash-del-btn {
+  background: none;
+  border: none;
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+}
+
+.dash-del-btn:active { opacity: 0.5; }
+
 .dash-empty {
   text-align: center;
   color: var(--text-dim);
@@ -1669,25 +1713,115 @@ function renderDashboard() {
     el.innerHTML = html;
   } else {
     // Individual: members as rows, categories as columns
+    var isSuperAdmin = currentUser && currentUser.toLowerCase() === 'kobe';
     var html = '<table class="dash-table"><thead><tr><th>Member</th>';
     data.categories.forEach(function(c) {
-      html += '<th>' + esc(c.name) + '</th>';
+      html += '<th>' + esc(c.name) +
+        (isSuperAdmin ? ' <button class="dash-del-btn" data-del-cat="' + esc(c.id) + '" data-del-cat-name="' + esc(c.name) + '" title="Delete KPI">&#10005;</button>' : '') +
+        '</th>';
     });
     html += '<th>Total</th></tr></thead><tbody>';
 
     data.members.forEach(function(m) {
-      html += '<tr><td>' + esc(m) + '</td>';
+      html += '<tr><td>' + esc(m) +
+        (isSuperAdmin ? ' <button class="dash-del-btn" data-del-member="' + esc(m) + '" title="Delete member">&#10005;</button>' : '') +
+        '</td>';
       var rowTotal = 0;
       data.categories.forEach(function(c) {
         var v = (data.totals[m] && data.totals[m][c.id]) || 0;
         rowTotal += v;
-        html += '<td><span class="dash-cell-val">' + v + '</span></td>';
+        if (isSuperAdmin) {
+          html += '<td><div class="dash-cell-edit">' +
+            '<button class="dash-mini-btn minus" data-person="' + esc(m) + '" data-cat="' + esc(c.id) + '" data-dir="-1">−</button>' +
+            '<span class="dash-cell-val" data-person="' + esc(m) + '" data-cat="' + esc(c.id) + '">' + v + '</span>' +
+            '<button class="dash-mini-btn plus" data-person="' + esc(m) + '" data-cat="' + esc(c.id) + '" data-dir="1">+</button>' +
+            '</div></td>';
+        } else {
+          html += '<td><span class="dash-cell-val">' + v + '</span></td>';
+        }
       });
-      html += '<td><span class="dash-cell-val">' + rowTotal + '</span></td></tr>';
+      html += '<td><span class="dash-cell-val dash-row-total" data-person="' + esc(m) + '">' + rowTotal + '</span></td></tr>';
     });
 
     html += '</tbody></table>';
     el.innerHTML = html;
+
+    if (isSuperAdmin) {
+      // +/− buttons
+      el.querySelectorAll('.dash-mini-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var person = btn.dataset.person;
+          var catId = btn.dataset.cat;
+          var dir = parseInt(btn.dataset.dir, 10);
+          var valEl = el.querySelector('.dash-cell-val[data-person="' + person + '"][data-cat="' + catId + '"]');
+          var cur = parseInt(valEl.textContent, 10) || 0;
+          if (dir < 0 && cur <= 0) return;
+          valEl.textContent = cur + dir;
+          // Update row total
+          var totalEl = el.querySelector('.dash-row-total[data-person="' + person + '"]');
+          if (totalEl) totalEl.textContent = parseInt(totalEl.textContent, 10) + dir;
+          api('addLog', { person: person, categoryId: catId, count: dir }).then(function(res) {
+            if (!res.ok) {
+              showToast('Error: ' + (res.error || 'unknown'));
+              valEl.textContent = cur;
+              if (totalEl) totalEl.textContent = parseInt(totalEl.textContent, 10) - dir;
+            }
+          });
+        });
+      });
+
+      // Tap value to set directly
+      el.querySelectorAll('.dash-cell-edit .dash-cell-val').forEach(function(valEl) {
+        valEl.addEventListener('click', function() {
+          var person = valEl.dataset.person;
+          var catId = valEl.dataset.cat;
+          var cur = parseInt(valEl.textContent, 10) || 0;
+          var newVal = prompt('Set count for ' + person + ':', cur);
+          if (newVal === null) return;
+          newVal = parseInt(newVal, 10);
+          if (isNaN(newVal) || newVal < 0) { showToast('Invalid number'); return; }
+          var diff = newVal - cur;
+          if (diff === 0) return;
+          valEl.textContent = newVal;
+          var totalEl = el.querySelector('.dash-row-total[data-person="' + person + '"]');
+          if (totalEl) totalEl.textContent = parseInt(totalEl.textContent, 10) + diff;
+          api('addLog', { person: person, categoryId: catId, count: diff }).then(function(res) {
+            if (!res.ok) {
+              showToast('Error: ' + (res.error || 'unknown'));
+              valEl.textContent = cur;
+              if (totalEl) totalEl.textContent = parseInt(totalEl.textContent, 10) - diff;
+            }
+          });
+        });
+      });
+
+      // Delete category (column)
+      el.querySelectorAll('.dash-del-btn[data-del-cat]').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var catId = btn.dataset.delCat;
+          var catName = btn.dataset.delCatName;
+          if (!confirm('Delete category "' + catName + '"? This removes it for the whole team.')) return;
+          api('deleteCategory', { categoryId: catId }).then(function(res) {
+            if (res.ok) { showToast('Deleted: ' + catName); loadDashboard(); }
+            else { showToast('Error: ' + (res.error || 'unknown')); }
+          });
+        });
+      });
+
+      // Delete member (row)
+      el.querySelectorAll('.dash-del-btn[data-del-member]').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var name = btn.dataset.delMember;
+          if (!confirm('Remove ' + name + ' from the team?')) return;
+          api('removeMemberFromTeam', { name: name }).then(function(res) {
+            if (res.ok) { showToast(name + ' removed'); loadDashboard(); }
+            else { showToast('Error: ' + (res.error || 'unknown')); }
+          });
+        });
+      });
+    }
   }
 }
 
