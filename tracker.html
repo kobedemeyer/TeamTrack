@@ -910,6 +910,138 @@ body:not(.is-admin) .admin-only { display: none !important; }
   padding: 4px 8px;
 }
 
+/* ── Manage Team — Create Team row ─────────────────────── */
+
+.manage-create-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.manage-create-row input {
+  flex: 1;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: 'Barlow', sans-serif;
+  background: var(--bg2);
+  border: 2px solid var(--bg3);
+  border-radius: 8px;
+  color: var(--text);
+  outline: none;
+}
+
+.manage-create-row input:focus { border-color: var(--gold); }
+
+.manage-create-row button {
+  padding: 10px 18px;
+  background: var(--gold);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 15px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.manage-create-row button:active { opacity: 0.7; }
+
+/* ── Manage Team — Inline KPI section ──────────────────── */
+
+.manage-kpi-section {
+  background: var(--bg2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+}
+
+.manage-kpi-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.manage-kpi-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg3);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.manage-kpi-pill button {
+  background: none;
+  border: none;
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.manage-kpi-pill button:active { opacity: 0.5; }
+
+.manage-kpi-add {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.manage-kpi-add input {
+  flex: 1;
+  padding: 5px 10px;
+  font-size: 13px;
+  font-family: 'Barlow', sans-serif;
+  background: var(--bg);
+  border: 1px solid var(--bg3);
+  border-radius: 6px;
+  color: var(--text);
+  outline: none;
+}
+
+.manage-kpi-add input:focus { border-color: var(--gold); }
+
+.manage-kpi-add button {
+  padding: 5px 12px;
+  background: var(--gold);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.manage-kpi-add button:active { opacity: 0.7; }
+
+/* ── Home — Admin Team Switcher ────────────────────────── */
+
+#admin-team-switch {
+  display: block;
+  margin-top: 6px;
+  padding: 5px 10px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--bg2);
+  border: 1px solid var(--bg3);
+  border-radius: 8px;
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+}
+
+#admin-team-switch:focus { border-color: var(--gold); }
+
 /* ── All Teams screen ───────────────────────────────────── */
 
 .allteams-list {
@@ -1002,6 +1134,7 @@ body:not(.is-admin) .admin-only { display: none !important; }
   <div class="profile-header-area" onclick="goTo('profile')">
     <div class="home-greeting" id="home-greeting"></div>
     <div class="home-team-badge" id="home-team-badge"></div>
+    <select id="admin-team-switch" class="admin-only" onclick="event.stopPropagation()"></select>
   </div>
   <div class="home-grid">
     <div class="home-tile" onclick="goTo('dashboard')">
@@ -1125,6 +1258,10 @@ body:not(.is-admin) .admin-only { display: none !important; }
   <div class="header">
     <button class="back-btn" onclick="goTo('profile')">&#9664; Back</button>
     <h1>Manage Team</h1>
+  </div>
+  <div class="manage-create-row admin-only">
+    <input id="manage-new-team-name" type="text" placeholder="New team name" maxlength="30" autocomplete="off">
+    <button onclick="createTeamFromManage()">CREATE</button>
   </div>
   <div id="manage-team-list">
     <div class="loading-center"><div class="spinner"></div></div>
@@ -1392,6 +1529,29 @@ function goTo(screen) {
     case 'home':
       document.getElementById('home-greeting').textContent = 'Hello, ' + currentUser;
       document.getElementById('home-team-badge').textContent = currentTeamName;
+      if (isAdmin) {
+        var sw = document.getElementById('admin-team-switch');
+        api('getTeams').then(function(teams) {
+          if (!Array.isArray(teams)) return;
+          sw.innerHTML = '';
+          teams.forEach(function(t) {
+            var opt = document.createElement('option');
+            opt.value = t.id;
+            opt.textContent = t.name;
+            opt.dataset.teamName = t.name;
+            if (t.id === currentTeamId) opt.selected = true;
+            sw.appendChild(opt);
+          });
+        });
+        sw.onchange = function() {
+          var sel = sw.options[sw.selectedIndex];
+          currentTeamId = sel.value;
+          currentTeamName = sel.dataset.teamName;
+          localStorage.setItem('tt_teamId', currentTeamId);
+          localStorage.setItem('tt_teamName', currentTeamName);
+          document.getElementById('home-team-badge').textContent = currentTeamName;
+        };
+      }
       break;
     case 'teamselect':
       loadTeamSelect();
@@ -1825,27 +1985,49 @@ function loadManageTeam() {
   var el = document.getElementById('manage-team-list');
   el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
 
-  Promise.all([api('getAllMembers'), api('getTeams')]).then(function(results) {
+  Promise.all([api('getAllMembers'), api('getTeams'), api('getCategories')]).then(function(results) {
     var members = results[0];
     var teams = results[1];
+    var allCats = results[2];
 
     cachedTeamsList = Array.isArray(teams) ? teams : [];
+    var catsArray = Array.isArray(allCats) ? allCats : [];
 
     if (members.error || !Array.isArray(members)) {
       el.innerHTML = '<div class="manage-empty">Could not load members</div>';
       return;
     }
-    if (!members.length) {
+    if (!members.length && !cachedTeamsList.length) {
       el.innerHTML = '<div class="manage-empty">No members found</div>';
       return;
     }
 
-    // Group by teamName
+    // Group categories by teamId
+    var catsByTeam = {};
+    catsArray.forEach(function(c) {
+      var tid = c.teamId || '__none__';
+      if (!catsByTeam[tid]) catsByTeam[tid] = [];
+      catsByTeam[tid].push(c);
+    });
+
+    // Build teamId→teamName map from teams list
+    var teamIdToName = {};
+    cachedTeamsList.forEach(function(t) { teamIdToName[t.id] = t.name; });
+
+    // Group members by teamName
     var groups = {};
+    var teamNameToId = {};
     members.forEach(function(m) {
       var key = m.teamName || 'No team';
       if (!groups[key]) groups[key] = [];
       groups[key].push(m);
+      if (m.teamId) teamNameToId[key] = m.teamId;
+    });
+
+    // Ensure all teams appear even if they have no members
+    cachedTeamsList.forEach(function(t) {
+      if (!groups[t.name]) groups[t.name] = [];
+      teamNameToId[t.name] = t.id;
     });
 
     // Sort team names, but put "No team" last
@@ -1857,7 +2039,29 @@ function loadManageTeam() {
 
     var html = '';
     teamNames.forEach(function(teamName) {
+      var teamId = teamNameToId[teamName] || '';
       html += '<div class="manage-team-heading">' + esc(teamName) + '</div>';
+
+      // KPI section for this team
+      if (teamId) {
+        var teamCats = catsByTeam[teamId] || [];
+        html += '<div class="manage-kpi-section"><div class="manage-kpi-pills">';
+        if (teamCats.length) {
+          teamCats.forEach(function(c) {
+            html += '<span class="manage-kpi-pill">' + esc(c.name) +
+              '<button onclick="deleteManageKpi(\'' + esc(c.id) + '\',\'' + esc(c.name).replace(/'/g, "\\'") + '\')">&#10005;</button>' +
+              '</span>';
+          });
+        } else {
+          html += '<span style="color:var(--text-dim);font-size:12px">No KPIs</span>';
+        }
+        html += '</div>';
+        html += '<div class="manage-kpi-add">' +
+          '<input id="mkpi-input-' + esc(teamId) + '" type="text" placeholder="Add KPI…" maxlength="40" autocomplete="off">' +
+          '<button onclick="addManageKpi(\'' + esc(teamId) + '\')">Add</button>' +
+          '</div></div>';
+      }
+
       groups[teamName].forEach(function(m) {
         var initials = getInitials(m.name);
         var color = getAvatarColor(m.name);
@@ -1938,6 +2142,49 @@ function fullDeleteMember(name) {
   api('deleteMember', { name: name }).then(function(res) {
     if (res.ok) {
       showToast(name + ' deleted');
+      loadManageTeam();
+    } else {
+      showToast('Error: ' + (res.error || 'unknown'));
+    }
+  });
+}
+
+function createTeamFromManage() {
+  var input = document.getElementById('manage-new-team-name');
+  var name = input.value.trim();
+  if (!name) return;
+  input.value = '';
+  api('addTeam', { name: name, person: currentUser }).then(function(res) {
+    if (res.ok || res.id) {
+      showToast('Team created: ' + name);
+      loadManageTeam();
+    } else {
+      showToast('Error: ' + (res.error || 'unknown'));
+    }
+  });
+}
+
+function addManageKpi(teamId) {
+  var input = document.getElementById('mkpi-input-' + teamId);
+  if (!input) return;
+  var name = input.value.trim();
+  if (!name) return;
+  input.value = '';
+  api('addCategory', { name: name, person: currentUser, teamId: teamId }).then(function(res) {
+    if (res.ok) {
+      showToast('Created: ' + name);
+      loadManageTeam();
+    } else {
+      showToast('Error: ' + (res.error || 'unknown'));
+    }
+  });
+}
+
+function deleteManageKpi(catId, catName) {
+  if (!confirm('Delete category "' + catName + '"?')) return;
+  api('deleteCategory', { categoryId: catId }).then(function(res) {
+    if (res.ok) {
+      showToast('Deleted: ' + catName);
       loadManageTeam();
     } else {
       showToast('Error: ' + (res.error || 'unknown'));
