@@ -35,6 +35,15 @@ function doGet(e) {
       case 'addTeam':
         result = addTeam(e.parameter.name, e.parameter.person);
         break;
+      case 'getProfile':
+        result = getProfile(e.parameter.name, e.parameter.teamId);
+        break;
+      case 'getMembers':
+        result = getMembers(e.parameter.teamId);
+        break;
+      case 'removeMemberFromTeam':
+        result = removeMemberFromTeam(e.parameter.name);
+        break;
       default:
         result = { error: 'Unknown action: ' + action };
     }
@@ -207,4 +216,92 @@ function registerMember(name, teamId) {
 
   sheet.appendRow([trimmed, new Date().toISOString(), teamId || '']);
   return { ok: true, existing: false };
+}
+
+// ── Profile ──────────────────────────────────────────────────
+
+function getProfile(name, teamId) {
+  if (!name) return { error: 'Missing name' };
+
+  var logsSheet = SS.getSheetByName('Logs');
+  var membersSheet = SS.getSheetByName('Members');
+  var logs = logsSheet ? logsSheet.getDataRange().getValues().slice(1) : [];
+  var members = membersSheet ? membersSheet.getDataRange().getValues().slice(1) : [];
+
+  var trimmed = name.trim().toLowerCase();
+
+  // Member-since date
+  var memberSince = '';
+  for (var i = 0; i < members.length; i++) {
+    if (members[i][0].toString().toLowerCase() === trimmed) {
+      memberSince = members[i][1];
+      break;
+    }
+  }
+
+  // Filter logs by this person (and by team categories if teamId given)
+  var catIds = null;
+  if (teamId) {
+    var teamCats = getCategories(teamId);
+    catIds = {};
+    teamCats.forEach(function(c) { catIds[c.id] = true; });
+  }
+
+  var totalActions = 0;
+  var kpiCounts = {};
+  logs.forEach(function(r) {
+    if (r[1].toString().toLowerCase() !== trimmed) return;
+    if (catIds && !catIds[r[2]]) return;
+    var cnt = parseInt(r[4], 10) || 0;
+    totalActions += cnt;
+    var catName = r[3];
+    kpiCounts[catName] = (kpiCounts[catName] || 0) + cnt;
+  });
+
+  // Top KPI
+  var topKpi = { name: '—', count: 0 };
+  Object.keys(kpiCounts).forEach(function(k) {
+    if (kpiCounts[k] > topKpi.count) {
+      topKpi = { name: k, count: kpiCounts[k] };
+    }
+  });
+
+  return {
+    totalActions: totalActions,
+    topKpi: topKpi,
+    memberSince: memberSince
+  };
+}
+
+function getMembers(teamId) {
+  if (!teamId) return { error: 'Missing teamId' };
+
+  var sheet = SS.getSheetByName('Members');
+  if (!sheet) return [];
+  var data = sheet.getDataRange().getValues().slice(1);
+
+  var result = [];
+  data.forEach(function(r) {
+    if (r[2] === teamId) {
+      result.push({ name: r[0], joinedAt: r[1], teamId: r[2] });
+    }
+  });
+  return result;
+}
+
+function removeMemberFromTeam(name) {
+  if (!name) return { error: 'Missing name' };
+
+  var sheet = SS.getSheetByName('Members');
+  if (!sheet) return { error: 'Members sheet not found' };
+  var data = sheet.getDataRange().getValues();
+  var trimmed = name.trim().toLowerCase();
+
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0].toString().toLowerCase() === trimmed) {
+      sheet.getRange(i + 1, 3).setValue('');
+      return { ok: true };
+    }
+  }
+  return { error: 'Member not found' };
 }
