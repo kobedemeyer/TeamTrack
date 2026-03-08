@@ -874,7 +874,7 @@ html, body {
 
 body:not(.is-admin) .admin-only { display: none !important; }
 body:not(.is-super-admin) .super-admin-only { display: none !important; }
-body.is-super-admin .non-super-admin-only { display: none !important; }
+
 
 /* ── Delete buttons (admin-only) ────────────────────────── */
 
@@ -1192,7 +1192,7 @@ body.is-super-admin .non-super-admin-only { display: none !important; }
   </div>
   <div class="profile-header-area" onclick="goTo('profile')">
     <div class="home-greeting" id="home-greeting"></div>
-    <div class="home-team-badge non-super-admin-only" id="home-team-badge"></div>
+    <div class="home-team-badge" id="home-team-badge"></div>
     <select id="admin-team-switch" class="super-admin-only" onclick="event.stopPropagation()"></select>
   </div>
   <div class="home-grid">
@@ -1592,8 +1592,11 @@ function goTo(screen) {
   switch (screen) {
     case 'home':
       document.getElementById('home-greeting').textContent = 'Hello, ' + currentUser;
-      document.getElementById('home-team-badge').textContent = currentTeamName;
-      if (isAdmin && currentUser.toLowerCase() === 'kobe') {
+      var isSuperHome = isAdmin && currentUser.toLowerCase() === 'kobe';
+      var badgeEl = document.getElementById('home-team-badge');
+      badgeEl.textContent = currentTeamName;
+      badgeEl.style.display = isSuperHome ? 'none' : '';
+      if (isSuperHome) {
         var sw = document.getElementById('admin-team-switch');
         api('getTeams').then(function(teams) {
           if (!Array.isArray(teams)) return;
