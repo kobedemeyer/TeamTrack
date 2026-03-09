@@ -474,6 +474,21 @@ html, body {
   font-size: 15px;
 }
 
+.dash-team-card {
+  background: var(--bg2);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.dash-team-card-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  color: var(--gold);
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
 /* ── Log Action ──────────────────────────────────────────── */
 
 .log-cards {
@@ -1418,6 +1433,7 @@ let currentTeamName = localStorage.getItem('tt_teamName') || '';
 let currentScreen = 'login';
 let categoriesCache = [];
 let summaryCache = null;
+let allTeamsSummaryCache = null;
 let teamsCache = [];
 let dashMode = 'team';
 var isAdmin = new URLSearchParams(window.location.search).has('admin');
@@ -1723,7 +1739,7 @@ function setDashMode(mode) {
   dashMode = mode;
   document.getElementById('dash-toggle-team').classList.toggle('active', mode === 'team');
   document.getElementById('dash-toggle-individual').classList.toggle('active', mode === 'individual');
-  renderDashboard();
+  loadDashboard();
 }
 
 function loadDashboard() {
@@ -1732,65 +1748,108 @@ function loadDashboard() {
   el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
   btn.classList.add('spinning');
 
-  api('getSummary', { teamId: currentTeamId }).then(function(data) {
-    btn.classList.remove('spinning');
-    if (data.error || !data.categories) {
-      el.innerHTML = '<div class="dash-empty">Could not load data</div>';
-      return;
+  if (dashMode === 'team') {
+    // Fetch all teams, then getSummary for each in parallel
+    api('getTeams').then(function(teams) {
+      if (teams.error || !Array.isArray(teams) || !teams.length) {
+        btn.classList.remove('spinning');
+        el.innerHTML = '<div class="dash-empty">Could not load teams</div>';
+        return;
+      }
+      var promises = teams.map(function(t) {
+        return api('getSummary', { teamId: t.id }).then(function(data) {
+          return { team: t, summary: data };
+        });
+      });
+      Promise.all(promises).then(function(results) {
+        btn.classList.remove('spinning');
+        allTeamsSummaryCache = results.filter(function(r) {
+          return r.summary && !r.summary.error && r.summary.categories;
+        });
+        renderDashboard();
+      });
+    });
+  } else {
+    // Individual mode: single team summary
+    api('getSummary', { teamId: currentTeamId }).then(function(data) {
+      btn.classList.remove('spinning');
+      if (data.error || !data.categories) {
+        el.innerHTML = '<div class="dash-empty">Could not load data</div>';
+        return;
+      }
+      summaryCache = data;
+      renderDashboard();
+    });
+  }
+}
+
+function filterTeamKpis(categories, teamName) {
+  var rnrNames = {};
+  RNR_TASKS.forEach(function(t) { rnrNames[t.name.toLowerCase()] = t; });
+  var sourceKpiNames = {};
+  RNR_SOURCE_KPIS.forEach(function(s) { sourceKpiNames[s.name.toLowerCase()] = s; });
+
+  var kpiCats = [];
+  categories.forEach(function(c) {
+    var task = rnrNames[c.name.toLowerCase()];
+    var isSource = sourceKpiNames[c.name.toLowerCase()];
+    if (isSource) {
+      if (isSource.track.toLowerCase() === teamName.toLowerCase()) kpiCats.push(c);
+    } else if (!task) {
+      kpiCats.push(c);
+    } else if (task.threshold) {
+      // hidden — derived from sourceKpis
+    } else if (task.track !== 'General' && task.track.toLowerCase() === teamName.toLowerCase()) {
+      kpiCats.push(c);
     }
-    summaryCache = data;
-    renderDashboard();
+    // General RnR tasks excluded from dashboard (live in RnR tab)
   });
+  return kpiCats;
 }
 
 function renderDashboard() {
   var el = document.getElementById('dash-content');
-  var data = summaryCache;
-  if (!data) return;
-
-  if (!data.categories.length || !data.members.length) {
-    el.innerHTML = '<div class="dash-empty">No data yet. Log some actions first!</div>';
-    return;
-  }
-
-  // Split categories into KPI vs RnR
-  var rnrNames = {};
-  RNR_TASKS.forEach(function(t) { rnrNames[t.name.toLowerCase()] = t; });
-  var kpiCats = [];
-  var rnrCats = [];
-  data.categories.forEach(function(c) {
-    if (rnrNames[c.name.toLowerCase()]) rnrCats.push(c);
-    else kpiCats.push(c);
-  });
 
   if (dashMode === 'team') {
-    var html = '';
+    // ── All Teams cards ──
+    if (!allTeamsSummaryCache || !allTeamsSummaryCache.length) {
+      el.innerHTML = '<div class="dash-empty">No data yet. Log some actions first!</div>';
+      return;
+    }
 
-    if (kpiCats.length) {
-      html += '<div class="rnr-track-heading">Team KPIs</div>';
+    var html = '';
+    allTeamsSummaryCache.forEach(function(entry) {
+      var team = entry.team;
+      var data = entry.summary;
+      if (!data.categories || !data.categories.length) return;
+
+      var kpiCats = filterTeamKpis(data.categories, team.name);
+      if (!kpiCats.length) return;
+
+      html += '<div class="dash-team-card">';
+      html += '<div class="dash-team-card-name">' + esc(team.name) + '</div>';
       html += '<table class="dash-table"><thead><tr><th>KPI</th><th>Team Total</th></tr></thead><tbody>';
       kpiCats.forEach(function(c) {
         var total = 0;
-        data.members.forEach(function(m) { total += (data.totals[m] && data.totals[m][c.id]) || 0; });
+        (data.members || []).forEach(function(m) { total += (data.totals[m] && data.totals[m][c.id]) || 0; });
         html += '<tr><td>' + esc(c.name) + '</td><td><span class="dash-cell-val">' + total + '</span></td></tr>';
       });
       html += '</tbody></table>';
-    }
+      html += '</div>';
+    });
 
-    if (rnrCats.length) {
-      html += '<div class="rnr-track-heading">RnR Competition</div>';
-      html += '<table class="dash-table"><thead><tr><th>Task</th><th>Team Total</th></tr></thead><tbody>';
-      rnrCats.forEach(function(c) {
-        var total = 0;
-        data.members.forEach(function(m) { total += (data.totals[m] && data.totals[m][c.id]) || 0; });
-        html += '<tr><td>' + esc(c.name) + '</td><td><span class="dash-cell-val">' + total + '</span></td></tr>';
-      });
-      html += '</tbody></table>';
-    }
-
-    el.innerHTML = html;
+    el.innerHTML = html || '<div class="dash-empty">No KPI data across teams yet.</div>';
   } else {
-    // Individual: members as rows, categories as columns
+    // ── Individual mode (current team only, KPIs only) ──
+    var data = summaryCache;
+    if (!data) return;
+
+    if (!data.categories.length || !data.members.length) {
+      el.innerHTML = '<div class="dash-empty">No data yet. Log some actions first!</div>';
+      return;
+    }
+
+    var kpiCats = filterTeamKpis(data.categories, currentTeamName);
     var isSuperAdmin = currentUser && currentUser.toLowerCase() === 'kobe';
 
     function buildIndividualTable(cats, heading) {
@@ -1828,8 +1887,8 @@ function renderDashboard() {
       return h;
     }
 
-    var html = buildIndividualTable(kpiCats, 'Team KPIs') + buildIndividualTable(rnrCats, 'RnR Competition');
-    el.innerHTML = html;
+    var html = buildIndividualTable(kpiCats, 'Team KPIs');
+    el.innerHTML = html || '<div class="dash-empty">No KPI data yet.</div>';
 
     if (isSuperAdmin) {
       // +/− buttons
@@ -1842,7 +1901,6 @@ function renderDashboard() {
           var cur = parseInt(valEl.textContent, 10) || 0;
           if (dir < 0 && cur <= 0) return;
           valEl.textContent = cur + dir;
-          // Update row total
           var totalEl = el.querySelector('.dash-row-total[data-person="' + person + '"]');
           if (totalEl) totalEl.textContent = parseInt(totalEl.textContent, 10) + dir;
           api('addLog', { person: person, categoryId: catId, count: dir }).then(function(res) {
