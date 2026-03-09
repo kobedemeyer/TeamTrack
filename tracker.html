@@ -549,24 +549,6 @@ html, body {
 
 /* ── RnR Competition ────────────────────────────────────── */
 
-.rnr-score {
-  text-align: center;
-  padding: 20px 0 16px;
-}
-
-.rnr-score-number {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 56px;
-  color: var(--gold);
-  line-height: 1;
-}
-
-.rnr-score-label {
-  font-size: 13px;
-  color: var(--text-dim);
-  margin-top: 4px;
-}
-
 .rnr-track-heading {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 16px;
@@ -576,20 +558,44 @@ html, body {
   margin: 18px 0 8px;
 }
 
-.rnr-track-heading:first-of-type {
+.rnr-track-heading:first-child {
   margin-top: 4px;
 }
 
-.rnr-points {
-  display: inline-block;
-  background: var(--gold-dim);
-  color: var(--bg);
+.rnr-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg2);
+  border: 2px solid var(--bg3);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 8px;
+}
+
+.rnr-row-me {
+  border-color: var(--gold);
+}
+
+.rnr-rank {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 13px;
-  padding: 2px 8px;
-  border-radius: 10px;
+  font-size: 22px;
+  color: var(--gold);
+  min-width: 32px;
+  text-align: center;
+}
+
+.rnr-name {
+  flex: 1;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.rnr-pts {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  color: var(--gold);
   letter-spacing: 1px;
-  margin-top: 4px;
 }
 
 .log-toast {
@@ -1872,7 +1878,16 @@ function loadLogCards() {
     var cats = data.categories;
     categoriesCache = cats;
 
-    if (!cats.length) {
+    // Filter categories: only show tasks the member can complete (their team track + General)
+    var rnrNames = {};
+    RNR_TASKS.forEach(function(t) { rnrNames[t.name.toLowerCase()] = t.track; });
+    var filteredCats = cats.filter(function(c) {
+      var track = rnrNames[c.name.toLowerCase()];
+      if (!track) return true; // not an RnR category, always show
+      return track === 'General' || track.toLowerCase() === currentTeamName.toLowerCase();
+    });
+
+    if (!filteredCats.length) {
       el.innerHTML = '<div class="log-empty">No categories yet. Create one first!</div>';
       return;
     }
@@ -1880,7 +1895,7 @@ function loadLogCards() {
     var myTotals = (data.totals && data.totals[currentUser]) || {};
 
     var html = '';
-    cats.forEach(function(c) {
+    filteredCats.forEach(function(c) {
       var count = myTotals[c.id] || 0;
       html += '<div class="log-card" data-cat-id="' + esc(c.id) + '" data-cat-name="' + esc(c.name) + '">' +
         '<div class="log-card-name">' + esc(c.name) + '</div>' +
@@ -1944,110 +1959,71 @@ function loadRnR() {
     }
 
     var cats = data.categories;
-    var myTotals = (data.totals && data.totals[currentUser]) || {};
+    var allTotals = data.totals || {};
 
     // Build lookup: category name (lowercase) → category object
     var catByName = {};
     cats.forEach(function(c) { catByName[c.name.toLowerCase()] = c; });
 
-    // Filter tasks: show only current team's track + General
+    // Filter tasks relevant to this team
     var myTasks = RNR_TASKS.filter(function(t) {
       return t.track === 'General' || t.track.toLowerCase() === currentTeamName.toLowerCase();
     });
 
-    // Find missing categories and auto-create them
+    // Auto-create missing categories
     var missing = myTasks.filter(function(t) { return !catByName[t.name.toLowerCase()]; });
     if (missing.length) {
       var created = 0;
       missing.forEach(function(t) {
         api('addCategory', { name: t.name, person: currentUser, teamId: currentTeamId }).then(function(res) {
           created++;
-          if (created >= missing.length) {
-            // Reload after all categories are created
-            loadRnR();
-          }
+          if (created >= missing.length) loadRnR();
         });
       });
       return;
     }
 
-    // Calculate total score
-    var totalScore = 0;
+    // Build RnR point lookup: catId → points
+    var pointsByCatId = {};
     myTasks.forEach(function(t) {
       var cat = catByName[t.name.toLowerCase()];
-      if (cat) {
-        var count = myTotals[cat.id] || 0;
-        totalScore += count * t.points;
-      }
+      if (cat) pointsByCatId[cat.id] = t.points;
     });
 
-    // Group tasks by track
-    var tracks = [];
-    var trackMap = {};
-    myTasks.forEach(function(t) {
-      if (!trackMap[t.track]) {
-        trackMap[t.track] = [];
-        tracks.push(t.track);
-      }
-      trackMap[t.track].push(t);
+    // Calculate score for each person
+    var scores = [];
+    Object.keys(allTotals).forEach(function(person) {
+      var personTotals = allTotals[person];
+      var score = 0;
+      Object.keys(pointsByCatId).forEach(function(catId) {
+        score += (personTotals[catId] || 0) * pointsByCatId[catId];
+      });
+      scores.push({ name: person, score: score });
     });
 
-    // Render
-    var html = '<div class="rnr-score">' +
-      '<div class="rnr-score-number">' + totalScore + '</div>' +
-      '<div class="rnr-score-label">Total RnR Points</div>' +
-      '</div>';
+    // Sort by score descending
+    scores.sort(function(a, b) { return b.score - a.score; });
 
-    tracks.forEach(function(track) {
-      html += '<div class="rnr-track-heading">' + esc(track) + '</div>';
-      html += '<div class="log-cards">';
-      trackMap[track].forEach(function(t) {
-        var cat = catByName[t.name.toLowerCase()];
-        var catId = cat ? cat.id : '';
-        var count = cat ? (myTotals[cat.id] || 0) : 0;
-        html += '<div class="log-card" data-cat-id="' + esc(catId) + '" data-cat-name="' + esc(t.name) + '">' +
-          '<div class="log-card-name">' + esc(t.name) + '</div>' +
-          '<div class="rnr-points">+' + t.points + ' pts</div>' +
-          '<div class="log-card-btns">' +
-          '<button class="log-card-minus">\u2212</button>' +
-          '<button class="log-card-plus">+</button>' +
-          '</div>' +
-          '<div class="log-card-count">You: ' + count + '</div>' +
+    // Render leaderboard
+    var html = '<div class="rnr-track-heading">Leaderboard</div>';
+
+    if (!scores.length) {
+      html += '<div class="log-empty">No scores yet</div>';
+    } else {
+      scores.forEach(function(entry, i) {
+        var rank = i + 1;
+        var medal = rank === 1 ? '\uD83E\uDD47' : rank === 2 ? '\uD83E\uDD48' : rank === 3 ? '\uD83E\uDD49' : '';
+        var isMe = entry.name === currentUser;
+        html += '<div class="rnr-row' + (isMe ? ' rnr-row-me' : '') + '">' +
+          '<span class="rnr-rank">' + (medal || rank) + '</span>' +
+          '<span class="rnr-name">' + esc(entry.name) + '</span>' +
+          '<span class="rnr-pts">' + entry.score + ' pts</span>' +
           '</div>';
       });
-      html += '</div>';
-    });
+    }
 
     el.innerHTML = html;
-
-    // Attach +/- handlers (reuse logAction/logSubtract)
-    el.querySelectorAll('.log-card').forEach(function(card) {
-      card.querySelector('.log-card-plus').addEventListener('click', function(e) {
-        e.stopPropagation();
-        logAction(card.dataset.catId, card.dataset.catName);
-        // Update RnR total score
-        updateRnRScore(1, card.dataset.catName);
-      });
-      card.querySelector('.log-card-minus').addEventListener('click', function(e) {
-        e.stopPropagation();
-        var countEl = card.querySelector('.log-card-count');
-        var cur = parseInt(countEl.textContent.replace('You: ', ''), 10) || 0;
-        if (cur <= 0) { showToast('Already at 0'); return; }
-        logSubtract(card.dataset.catId, card.dataset.catName);
-        updateRnRScore(-1, card.dataset.catName);
-      });
-    });
   });
-}
-
-function updateRnRScore(delta, catName) {
-  var task = RNR_TASKS.find(function(t) { return t.name.toLowerCase() === catName.toLowerCase(); });
-  if (!task) return;
-  var scoreEl = document.querySelector('.rnr-score-number');
-  if (scoreEl) {
-    var cur = parseInt(scoreEl.textContent, 10) || 0;
-    scoreEl.textContent = cur + (delta * task.points);
-  }
 }
 
 function logAction(catId, catName) {
