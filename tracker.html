@@ -1945,7 +1945,8 @@ function loadLogCards() {
       return;
     }
 
-    // Split into Team KPIs vs RnR tasks (filtered by team track + General)
+    // Split into Team KPIs vs RnR tasks
+    // Track-specific RnR tasks → Team KPIs, General RnR tasks → RnR Competition
     var kpiCats = [];
     var rnrCats = [];
     cats.forEach(function(c) {
@@ -1957,12 +1958,17 @@ function loadLogCards() {
           kpiCats.push(c);
         }
       } else if (!task) {
+        // Regular category — always show under Team KPIs
         kpiCats.push(c);
-      } else if (!task.threshold && (task.track === 'General' || task.track.toLowerCase() === currentTeamName.toLowerCase())) {
-        // Direct RnR task (no threshold) — show in RnR section
+      } else if (task.threshold) {
+        // Threshold-based — hidden (points derived from sourceKpis)
+      } else if (task.track !== 'General' && task.track.toLowerCase() === currentTeamName.toLowerCase()) {
+        // Track-specific direct RnR task — show under Team KPIs
+        kpiCats.push(c);
+      } else if (task.track === 'General') {
+        // General RnR task — show under RnR Competition
         rnrCats.push({ cat: c, task: task });
       }
-      // Threshold-based RnR tasks are NOT shown in Log Action (points derived from sourceKpis)
     });
 
     if (!kpiCats.length && !rnrCats.length) {
@@ -2030,8 +2036,8 @@ function loadLogCards() {
 
 const RNR_TASKS = [
   { track: 'iGT',       name: 'outreaches to companies', points: 3, threshold: 10, sourceKpis: ['cold calls', 'emails sent', 'linkedin sent'] },
-  { track: 'iGT',       name: 'meeting with a company',  points: 6 },
-  { track: 'iGT',       name: 'join a workspace',        points: 1 },
+  { track: 'iGT',       name: 'meetings done',           points: 5 },
+  { track: 'iGT',       name: 'join workspace',          points: 2 },
   { track: 'iGT',       name: 'networking event',        points: 6 },
   { track: 'oGX',       name: 'call 10 leads/recontacts',        points: 3 },
   { track: 'oGX',       name: 'send EP 3 projects',              points: 3 },
