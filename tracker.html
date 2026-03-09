@@ -1921,20 +1921,48 @@ function loadLogCards() {
     var cats = data.categories;
     categoriesCache = cats;
 
-    // Build RnR name lookup
+    // Build lookups
     var rnrNames = {};
     RNR_TASKS.forEach(function(t) { rnrNames[t.name.toLowerCase()] = t; });
+    var sourceKpiNames = {};
+    RNR_SOURCE_KPIS.forEach(function(s) { sourceKpiNames[s.name.toLowerCase()] = s; });
+    var catByName = {};
+    cats.forEach(function(c) { catByName[c.name.toLowerCase()] = c; });
+
+    // Auto-create missing sourceKpi categories for this team's track
+    var mySourceKpis = RNR_SOURCE_KPIS.filter(function(s) {
+      return s.track.toLowerCase() === currentTeamName.toLowerCase();
+    });
+    var missingSource = mySourceKpis.filter(function(s) { return !catByName[s.name.toLowerCase()]; });
+    if (missingSource.length) {
+      var created = 0;
+      missingSource.forEach(function(s) {
+        api('addCategory', { name: s.name, person: currentUser, teamId: currentTeamId }).then(function(res) {
+          created++;
+          if (created >= missingSource.length) loadLogCards();
+        });
+      });
+      return;
+    }
 
     // Split into Team KPIs vs RnR tasks (filtered by team track + General)
     var kpiCats = [];
     var rnrCats = [];
     cats.forEach(function(c) {
       var task = rnrNames[c.name.toLowerCase()];
-      if (!task) {
+      var isSource = sourceKpiNames[c.name.toLowerCase()];
+      if (isSource) {
+        // sourceKpi — show under Team KPIs if it's for this team's track
+        if (isSource.track.toLowerCase() === currentTeamName.toLowerCase()) {
+          kpiCats.push(c);
+        }
+      } else if (!task) {
         kpiCats.push(c);
-      } else if (task.track === 'General' || task.track.toLowerCase() === currentTeamName.toLowerCase()) {
+      } else if (!task.threshold && (task.track === 'General' || task.track.toLowerCase() === currentTeamName.toLowerCase())) {
+        // Direct RnR task (no threshold) — show in RnR section
         rnrCats.push({ cat: c, task: task });
       }
+      // Threshold-based RnR tasks are NOT shown in Log Action (points derived from sourceKpis)
     });
 
     if (!kpiCats.length && !rnrCats.length) {
@@ -2001,7 +2029,7 @@ function loadLogCards() {
 // ── RnR Competition ──────────────────────────────────────────
 
 const RNR_TASKS = [
-  { track: 'iGT',       name: 'outreaches to companies', points: 3 },
+  { track: 'iGT',       name: 'outreaches to companies', points: 3, threshold: 10, sourceKpis: ['cold calls', 'emails sent', 'linkedin sent'] },
   { track: 'iGT',       name: 'meeting with a company',  points: 6 },
   { track: 'iGT',       name: 'join a workspace',        points: 1 },
   { track: 'iGT',       name: 'networking event',        points: 6 },
@@ -2021,6 +2049,16 @@ const RNR_TASKS = [
   { track: 'General',   name: 'attend info booth',       points: 3 },
   { track: 'General',   name: 'help create video',       points: 3 }
 ];
+
+// Collect all sourceKpis with their track for auto-creation and Log Action display
+var RNR_SOURCE_KPIS = [];
+RNR_TASKS.forEach(function(t) {
+  if (t.sourceKpis) {
+    t.sourceKpis.forEach(function(name) {
+      RNR_SOURCE_KPIS.push({ track: t.track, name: name });
+    });
+  }
+});
 
 function loadRnR() {
   var el = document.getElementById('rnr-content');
@@ -2047,33 +2085,44 @@ function loadRnR() {
       return t.track === 'General' || t.track.toLowerCase() === currentTeamName.toLowerCase();
     });
 
-    // Auto-create missing categories
-    var missing = myTasks.filter(function(t) { return !catByName[t.name.toLowerCase()]; });
-    if (missing.length) {
+    // Auto-create missing categories (direct tasks only, not threshold-based)
+    var missing = myTasks.filter(function(t) { return !t.threshold && !catByName[t.name.toLowerCase()]; });
+    // Also auto-create sourceKpi categories
+    var mySourceKpis = RNR_SOURCE_KPIS.filter(function(s) {
+      return s.track.toLowerCase() === currentTeamName.toLowerCase();
+    });
+    var missingSource = mySourceKpis.filter(function(s) { return !catByName[s.name.toLowerCase()]; });
+    var allMissing = missing.concat(missingSource);
+    if (allMissing.length) {
       var created = 0;
-      missing.forEach(function(t) {
+      allMissing.forEach(function(t) {
         api('addCategory', { name: t.name, person: currentUser, teamId: currentTeamId }).then(function(res) {
           created++;
-          if (created >= missing.length) loadRnR();
+          if (created >= allMissing.length) loadRnR();
         });
       });
       return;
     }
-
-    // Build RnR point lookup: catId → points
-    var pointsByCatId = {};
-    myTasks.forEach(function(t) {
-      var cat = catByName[t.name.toLowerCase()];
-      if (cat) pointsByCatId[cat.id] = t.points;
-    });
 
     // Calculate score for each person
     var scores = [];
     Object.keys(allTotals).forEach(function(person) {
       var personTotals = allTotals[person];
       var score = 0;
-      Object.keys(pointsByCatId).forEach(function(catId) {
-        score += (personTotals[catId] || 0) * pointsByCatId[catId];
+      myTasks.forEach(function(t) {
+        if (t.threshold && t.sourceKpis) {
+          // Threshold-based: sum sourceKpi counts, floor divide by threshold
+          var total = 0;
+          t.sourceKpis.forEach(function(kpiName) {
+            var cat = catByName[kpiName.toLowerCase()];
+            if (cat) total += personTotals[cat.id] || 0;
+          });
+          score += Math.floor(total / t.threshold) * t.points;
+        } else {
+          // Direct: count * points
+          var cat = catByName[t.name.toLowerCase()];
+          if (cat) score += (personTotals[cat.id] || 0) * t.points;
+        }
       });
       scores.push({ name: person, score: score });
     });
