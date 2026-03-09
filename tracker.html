@@ -1295,7 +1295,7 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
   <div class="header">
     <button class="back-btn" onclick="goTo('home')">&#9664; Back</button>
     <h1>Dashboard</h1>
-    <button class="refresh-btn" id="dash-refresh" onclick="loadDashboard()">&#8635;</button>
+    <button class="refresh-btn" id="dash-refresh" onclick="invalidateApiCache();delete screenLastLoaded['dashboard'];loadDashboard()">&#8635;</button>
   </div>
   <div class="dash-toggle">
     <button class="dash-toggle-btn active" id="dash-toggle-team" onclick="setDashMode('team')">Team Totals</button>
@@ -1313,7 +1313,7 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
   <div class="header">
     <button class="back-btn" onclick="goTo('home')">&#9664; Back</button>
     <h1>Log Action</h1>
-    <button class="refresh-btn" id="log-refresh" onclick="loadLogCards()">&#8635;</button>
+    <button class="refresh-btn" id="log-refresh" onclick="invalidateApiCache();delete screenLastLoaded['log'];loadLogCards()">&#8635;</button>
   </div>
   <div id="log-cards-wrapper">
     <div class="loading-center"><div class="spinner"></div></div>
@@ -1328,7 +1328,7 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
   <div class="header">
     <button class="back-btn" onclick="goTo('home')">&#9664; Back</button>
     <h1>RnR</h1>
-    <button class="refresh-btn" id="rnr-refresh" onclick="loadRnR()">&#8635;</button>
+    <button class="refresh-btn" id="rnr-refresh" onclick="invalidateApiCache();delete screenLastLoaded['rnr'];loadRnR()">&#8635;</button>
   </div>
   <div id="rnr-content">
     <div class="loading-center"><div class="spinner"></div></div>
@@ -1342,7 +1342,7 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
   <div class="header">
     <button class="back-btn" onclick="goTo('home')">&#9664; Back</button>
     <h1>Categories</h1>
-    <button class="refresh-btn" id="cat-refresh" onclick="loadCategories()">&#8635;</button>
+    <button class="refresh-btn" id="cat-refresh" onclick="invalidateApiCache();delete screenLastLoaded['categories'];loadCategories()">&#8635;</button>
   </div>
   <div class="cat-list" id="cat-list">
     <div class="loading-center"><div class="spinner"></div></div>
@@ -1360,7 +1360,7 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
   <div class="header">
     <button class="back-btn" onclick="goTo('home')">&#9664; Back</button>
     <h1>Activity</h1>
-    <button class="refresh-btn" id="act-refresh" onclick="loadActivity()">&#8635;</button>
+    <button class="refresh-btn" id="act-refresh" onclick="invalidateApiCache();delete screenLastLoaded['activity'];loadActivity()">&#8635;</button>
   </div>
   <div class="activity-list" id="activity-list">
     <div class="loading-center"><div class="spinner"></div></div>
@@ -1666,6 +1666,11 @@ function createTeam() {
 
 // ── Navigation ──────────────────────────────────────────────
 
+function screenIsFresh(screen) {
+  var last = screenLastLoaded[screen];
+  return last && (Date.now() - last < API_CACHE_TTL);
+}
+
 function goTo(screen) {
   var prevEl = document.getElementById(SCREENS[currentScreen]);
   var nextEl = document.getElementById(SCREENS[screen]);
@@ -1677,7 +1682,7 @@ function goTo(screen) {
   nextEl.classList.add('active');
   currentScreen = screen;
 
-  // Load data for the screen
+  // Load data for the screen (skip if recently loaded)
   switch (screen) {
     case 'home':
       document.getElementById('home-greeting').textContent = 'Hello, ' + currentUser;
@@ -1687,16 +1692,16 @@ function goTo(screen) {
       loadTeamSelect();
       break;
     case 'dashboard':
-      loadDashboard();
+      if (!screenIsFresh('dashboard')) loadDashboard();
       break;
     case 'log':
-      loadLogCards();
+      if (!screenIsFresh('log')) loadLogCards();
       break;
     case 'categories':
-      loadCategories();
+      if (!screenIsFresh('categories')) loadCategories();
       break;
     case 'activity':
-      loadActivity();
+      if (!screenIsFresh('activity')) loadActivity();
       break;
     case 'profile':
       loadProfile();
@@ -1708,20 +1713,29 @@ function goTo(screen) {
       loadAllTeams();
       break;
     case 'rnr':
-      loadRnR();
+      if (!screenIsFresh('rnr')) loadRnR();
       break;
   }
 }
 
 // ── API helper ──────────────────────────────────────────────
 
-function api(action, params) {
+var API_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+var apiCache = {};
+var screenLastLoaded = {};
+
+function buildApiUrl(action, params) {
   var url = API_URL + '?action=' + encodeURIComponent(action);
   if (params) {
     Object.keys(params).forEach(function(k) {
       url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
     });
   }
+  return url;
+}
+
+function api(action, params) {
+  var url = buildApiUrl(action, params);
   return fetch(url, { redirect: 'follow', mode: 'cors' })
     .then(function(r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -1731,6 +1745,40 @@ function api(action, params) {
       console.error('API error:', err);
       return { error: err.message };
     });
+}
+
+function apiCached(action, params) {
+  var url = buildApiUrl(action, params);
+  var entry = apiCache[url];
+  if (entry && (Date.now() - entry.ts < API_CACHE_TTL)) {
+    return Promise.resolve(JSON.parse(JSON.stringify(entry.data)));
+  }
+  return api(action, params).then(function(data) {
+    apiCache[url] = { ts: Date.now(), data: data };
+    return JSON.parse(JSON.stringify(data));
+  });
+}
+
+function invalidateApiCache() {
+  apiCache = {};
+}
+
+function fetchAllTeamsSummaries() {
+  return apiCached('getTeams').then(function(teams) {
+    if (teams.error || !Array.isArray(teams) || !teams.length) {
+      return [];
+    }
+    var promises = teams.map(function(t) {
+      return apiCached('getSummary', { teamId: t.id }).then(function(data) {
+        return { team: t, summary: data };
+      });
+    });
+    return Promise.all(promises).then(function(results) {
+      return results.filter(function(r) {
+        return r.summary && !r.summary.error && r.summary.categories;
+      });
+    });
+  });
 }
 
 // ── Dashboard ───────────────────────────────────────────────
@@ -1743,41 +1791,32 @@ function setDashMode(mode) {
 }
 
 function loadDashboard() {
-  var el = document.getElementById('dash-content');
   var btn = document.getElementById('dash-refresh');
+  if (btn.classList.contains('spinning')) return;
+  var el = document.getElementById('dash-content');
   el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
   btn.classList.add('spinning');
 
   if (dashMode === 'team') {
-    // Fetch all teams, then getSummary for each in parallel
-    api('getTeams').then(function(teams) {
-      if (teams.error || !Array.isArray(teams) || !teams.length) {
-        btn.classList.remove('spinning');
+    fetchAllTeamsSummaries().then(function(results) {
+      btn.classList.remove('spinning');
+      if (!results.length) {
         el.innerHTML = '<div class="dash-empty">Could not load teams</div>';
         return;
       }
-      var promises = teams.map(function(t) {
-        return api('getSummary', { teamId: t.id }).then(function(data) {
-          return { team: t, summary: data };
-        });
-      });
-      Promise.all(promises).then(function(results) {
-        btn.classList.remove('spinning');
-        allTeamsSummaryCache = results.filter(function(r) {
-          return r.summary && !r.summary.error && r.summary.categories;
-        });
-        renderDashboard();
-      });
+      allTeamsSummaryCache = results;
+      screenLastLoaded['dashboard'] = Date.now();
+      renderDashboard();
     });
   } else {
-    // Individual mode: single team summary
-    api('getSummary', { teamId: currentTeamId }).then(function(data) {
+    apiCached('getSummary', { teamId: currentTeamId }).then(function(data) {
       btn.classList.remove('spinning');
       if (data.error || !data.categories) {
         el.innerHTML = '<div class="dash-empty">Could not load data</div>';
         return;
       }
       summaryCache = data;
+      screenLastLoaded['dashboard'] = Date.now();
       renderDashboard();
     });
   }
@@ -1908,7 +1947,7 @@ function renderDashboard() {
               showToast('Error: ' + (res.error || 'unknown'));
               valEl.textContent = cur;
               if (totalEl) totalEl.textContent = parseInt(totalEl.textContent, 10) - dir;
-            }
+            } else { invalidateApiCache(); screenLastLoaded = {}; }
           });
         });
       });
@@ -1933,7 +1972,7 @@ function renderDashboard() {
               showToast('Error: ' + (res.error || 'unknown'));
               valEl.textContent = cur;
               if (totalEl) totalEl.textContent = parseInt(totalEl.textContent, 10) - diff;
-            }
+            } else { invalidateApiCache(); screenLastLoaded = {}; }
           });
         });
       });
@@ -1946,7 +1985,7 @@ function renderDashboard() {
           var catName = btn.dataset.delCatName;
           if (!confirm('Delete category "' + catName + '"? This removes it for the whole team.')) return;
           api('deleteCategory', { categoryId: catId }).then(function(res) {
-            if (res.ok) { showToast('Deleted: ' + catName); loadDashboard(); }
+            if (res.ok) { invalidateApiCache(); screenLastLoaded = {}; showToast('Deleted: ' + catName); loadDashboard(); }
             else { showToast('Error: ' + (res.error || 'unknown')); }
           });
         });
@@ -1963,7 +2002,7 @@ function renderDashboard() {
             api('deleteLogsByPerson', { name: name })
           ]).then(function(results) {
             var logRes = results[1];
-            if (logRes.ok) { showToast(name + ' deleted (' + (logRes.deleted || 0) + ' logs removed)'); loadDashboard(); }
+            if (logRes.ok) { invalidateApiCache(); screenLastLoaded = {}; showToast(name + ' deleted (' + (logRes.deleted || 0) + ' logs removed)'); loadDashboard(); }
             else { showToast('Error: ' + (logRes.error || 'unknown')); }
           });
         });
@@ -1975,13 +2014,15 @@ function renderDashboard() {
 // ── Log Action ──────────────────────────────────────────────
 
 function loadLogCards() {
-  var el = document.getElementById('log-cards-wrapper');
   var btn = document.getElementById('log-refresh');
+  if (btn.classList.contains('spinning')) return;
+  var el = document.getElementById('log-cards-wrapper');
   el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
   btn.classList.add('spinning');
 
-  api('getSummary', { teamId: currentTeamId }).then(function(data) {
+  apiCached('getSummary', { teamId: currentTeamId }).then(function(data) {
     btn.classList.remove('spinning');
+    screenLastLoaded['log'] = Date.now();
     if (data.error || !data.categories) {
       el.innerHTML = '<div class="log-empty">Could not load categories</div>';
       return;
@@ -2017,7 +2058,7 @@ function loadLogCards() {
       allMissing.forEach(function(item) {
         api('addCategory', { name: item.name, person: currentUser, teamId: currentTeamId }).then(function(res) {
           created++;
-          if (created >= allMissing.length) loadLogCards();
+          if (created >= allMissing.length) { invalidateApiCache(); screenLastLoaded = {}; loadLogCards(); }
         });
       });
       return;
@@ -2142,30 +2183,19 @@ RNR_TASKS.forEach(function(t) {
 });
 
 function loadRnR() {
-  var el = document.getElementById('rnr-content');
   var btn = document.getElementById('rnr-refresh');
+  if (btn.classList.contains('spinning')) return;
+  var el = document.getElementById('rnr-content');
   el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
   btn.classList.add('spinning');
 
-  // Fetch all teams so we can aggregate scores across every team
-  api('getTeams').then(function(teams) {
-    if (teams.error || !Array.isArray(teams) || !teams.length) {
+  fetchAllTeamsSummaries().then(function(validResults) {
       btn.classList.remove('spinning');
-      el.innerHTML = '<div class="log-empty">Could not load RnR data</div>';
-      return;
-    }
-
-    var promises = teams.map(function(t) {
-      return api('getSummary', { teamId: t.id }).then(function(data) {
-        return { team: t, summary: data };
-      });
-    });
-
-    Promise.all(promises).then(function(results) {
-      btn.classList.remove('spinning');
-      var validResults = results.filter(function(r) {
-        return r.summary && !r.summary.error && r.summary.categories;
-      });
+      screenLastLoaded['rnr'] = Date.now();
+      if (!validResults.length) {
+        el.innerHTML = '<div class="log-empty">Could not load RnR data</div>';
+        return;
+      }
 
       // Auto-create missing categories for the current team only
       var myResult = validResults.find(function(r) { return r.team.id === currentTeamId; });
@@ -2186,7 +2216,7 @@ function loadRnR() {
           allMissing.forEach(function(t) {
             api('addCategory', { name: t.name, person: currentUser, teamId: currentTeamId }).then(function(res) {
               created++;
-              if (created >= allMissing.length) loadRnR();
+              if (created >= allMissing.length) { invalidateApiCache(); screenLastLoaded = {}; loadRnR(); }
             });
           });
           return;
@@ -2253,7 +2283,6 @@ function loadRnR() {
       }
 
       el.innerHTML = html;
-    });
   });
 }
 
@@ -2276,6 +2305,9 @@ function logAction(catId, catName) {
         var cur = parseInt(countEl.textContent.replace('You: ', ''), 10) || 0;
         countEl.textContent = 'You: ' + Math.max(0, cur - 1);
       }
+    } else {
+      invalidateApiCache();
+      screenLastLoaded = {};
     }
   });
 }
@@ -2302,6 +2334,9 @@ function logSubtract(catId, catName) {
         var c = parseInt(countEl.textContent.replace('You: ', ''), 10) || 0;
         countEl.textContent = 'You: ' + (c + 1);
       }
+    } else {
+      invalidateApiCache();
+      screenLastLoaded = {};
     }
   });
 }
@@ -2316,13 +2351,15 @@ function showToast(msg) {
 // ── Categories ──────────────────────────────────────────────
 
 function loadCategories() {
-  var el = document.getElementById('cat-list');
   var btn = document.getElementById('cat-refresh');
+  if (btn.classList.contains('spinning')) return;
+  var el = document.getElementById('cat-list');
   el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
   btn.classList.add('spinning');
 
-  api('getCategories', { teamId: currentTeamId }).then(function(cats) {
+  apiCached('getCategories', { teamId: currentTeamId }).then(function(cats) {
     btn.classList.remove('spinning');
+    screenLastLoaded['categories'] = Date.now();
     if (cats.error || !Array.isArray(cats)) {
       el.innerHTML = '<div class="cat-empty">Could not load categories</div>';
       return;
@@ -2356,6 +2393,8 @@ function loadCategories() {
         btn.disabled = true;
         api('deleteCategory', { categoryId: catId }).then(function(res) {
           if (res.ok) {
+            invalidateApiCache();
+            screenLastLoaded = {};
             showToast('Deleted: ' + catName);
             loadCategories();
           } else {
@@ -2376,6 +2415,8 @@ function createCategory() {
   input.value = '';
   api('addCategory', { name: name, person: currentUser, teamId: currentTeamId }).then(function(res) {
     if (res.ok) {
+      invalidateApiCache();
+      screenLastLoaded = {};
       showToast('Created: ' + name);
       loadCategories();
     } else {
@@ -2387,13 +2428,15 @@ function createCategory() {
 // ── Activity ────────────────────────────────────────────────
 
 function loadActivity() {
-  var el = document.getElementById('activity-list');
   var btn = document.getElementById('act-refresh');
+  if (btn.classList.contains('spinning')) return;
+  var el = document.getElementById('activity-list');
   el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
   btn.classList.add('spinning');
 
-  api('getLogs', { limit: 50, teamId: currentTeamId }).then(function(logs) {
+  apiCached('getLogs', { limit: 50, teamId: currentTeamId }).then(function(logs) {
     btn.classList.remove('spinning');
+    screenLastLoaded['activity'] = Date.now();
     if (logs.error || !Array.isArray(logs)) {
       el.innerHTML = '<div class="activity-empty">Could not load activity</div>';
       return;
@@ -2428,6 +2471,8 @@ function loadActivity() {
         btn.disabled = true;
         api('deleteLog', { timestamp: ts, person: person }).then(function(res) {
           if (res.ok) {
+            invalidateApiCache();
+            screenLastLoaded = {};
             btn.closest('.activity-item').remove();
             showToast('Log deleted');
           } else {
@@ -2685,6 +2730,7 @@ function doMoveMember(name) {
 
   api('moveMemberToTeam', { name: name, teamId: teamId }).then(function(res) {
     if (res.ok) {
+      invalidateApiCache(); screenLastLoaded = {};
       showToast(name + ' moved to ' + teamName);
       loadManageTeam();
     } else {
@@ -2697,6 +2743,7 @@ function removeMember(name) {
   if (!confirm('Remove ' + name + ' from the team?')) return;
   api('removeMemberFromTeam', { name: name }).then(function(res) {
     if (res.ok) {
+      invalidateApiCache(); screenLastLoaded = {};
       showToast(name + ' removed');
       loadManageTeam();
     } else {
@@ -2709,6 +2756,7 @@ function fullDeleteMember(name) {
   if (!confirm('Permanently delete ' + name + ' from the app? This cannot be undone.')) return;
   api('deleteMember', { name: name }).then(function(res) {
     if (res.ok) {
+      invalidateApiCache(); screenLastLoaded = {};
       showToast(name + ' deleted');
       loadManageTeam();
     } else {
@@ -2724,6 +2772,7 @@ function createTeamFromManage() {
   input.value = '';
   api('addTeam', { name: name, person: currentUser }).then(function(res) {
     if (res.ok || res.id) {
+      invalidateApiCache(); screenLastLoaded = {};
       showToast('Team created: ' + name);
       loadManageTeam();
     } else {
@@ -2740,6 +2789,7 @@ function addManageKpi(teamId) {
   input.value = '';
   api('addCategory', { name: name, person: currentUser, teamId: teamId }).then(function(res) {
     if (res.ok) {
+      invalidateApiCache(); screenLastLoaded = {};
       showToast('Created: ' + name);
       loadManageTeam();
     } else {
@@ -2752,6 +2802,8 @@ function deleteManageKpi(catId, catName) {
   if (!confirm('Delete category "' + catName + '"?')) return;
   api('deleteCategory', { categoryId: catId }).then(function(res) {
     if (res.ok) {
+      invalidateApiCache();
+      screenLastLoaded = {};
       showToast('Deleted: ' + catName);
       loadManageTeam();
     } else {
