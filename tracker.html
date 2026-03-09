@@ -598,6 +598,18 @@ html, body {
   letter-spacing: 1px;
 }
 
+.rnr-points {
+  display: inline-block;
+  background: var(--gold-dim);
+  color: var(--bg);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  letter-spacing: 1px;
+  margin-top: 4px;
+}
+
 .log-toast {
   position: fixed;
   bottom: 80px;
@@ -1288,7 +1300,7 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
     <h1>Log Action</h1>
     <button class="refresh-btn" id="log-refresh" onclick="loadLogCards()">&#8635;</button>
   </div>
-  <div class="log-cards" id="log-cards">
+  <div id="log-cards-wrapper">
     <div class="loading-center"><div class="spinner"></div></div>
   </div>
 </div>
@@ -1731,51 +1743,82 @@ function renderDashboard() {
     return;
   }
 
+  // Split categories into KPI vs RnR
+  var rnrNames = {};
+  RNR_TASKS.forEach(function(t) { rnrNames[t.name.toLowerCase()] = t; });
+  var kpiCats = [];
+  var rnrCats = [];
+  data.categories.forEach(function(c) {
+    if (rnrNames[c.name.toLowerCase()]) rnrCats.push(c);
+    else kpiCats.push(c);
+  });
+
   if (dashMode === 'team') {
-    // Team Totals: one row with aggregate totals across all members
-    var html = '<table class="dash-table"><thead><tr><th>KPI</th><th>Team Total</th></tr></thead><tbody>';
-    data.categories.forEach(function(c) {
-      var total = 0;
-      data.members.forEach(function(m) {
-        total += (data.totals[m] && data.totals[m][c.id]) || 0;
+    var html = '';
+
+    if (kpiCats.length) {
+      html += '<div class="rnr-track-heading">Team KPIs</div>';
+      html += '<table class="dash-table"><thead><tr><th>KPI</th><th>Team Total</th></tr></thead><tbody>';
+      kpiCats.forEach(function(c) {
+        var total = 0;
+        data.members.forEach(function(m) { total += (data.totals[m] && data.totals[m][c.id]) || 0; });
+        html += '<tr><td>' + esc(c.name) + '</td><td><span class="dash-cell-val">' + total + '</span></td></tr>';
       });
-      html += '<tr><td>' + esc(c.name) + '</td><td><span class="dash-cell-val">' + total + '</span></td></tr>';
-    });
-    html += '</tbody></table>';
+      html += '</tbody></table>';
+    }
+
+    if (rnrCats.length) {
+      html += '<div class="rnr-track-heading">RnR Competition</div>';
+      html += '<table class="dash-table"><thead><tr><th>Task</th><th>Team Total</th></tr></thead><tbody>';
+      rnrCats.forEach(function(c) {
+        var total = 0;
+        data.members.forEach(function(m) { total += (data.totals[m] && data.totals[m][c.id]) || 0; });
+        html += '<tr><td>' + esc(c.name) + '</td><td><span class="dash-cell-val">' + total + '</span></td></tr>';
+      });
+      html += '</tbody></table>';
+    }
+
     el.innerHTML = html;
   } else {
     // Individual: members as rows, categories as columns
     var isSuperAdmin = currentUser && currentUser.toLowerCase() === 'kobe';
-    var html = '<table class="dash-table"><thead><tr><th>Member</th>';
-    data.categories.forEach(function(c) {
-      html += '<th>' + esc(c.name) +
-        (isSuperAdmin ? ' <button class="dash-del-btn" data-del-cat="' + esc(c.id) + '" data-del-cat-name="' + esc(c.name) + '" title="Delete KPI">&#10005;</button>' : '') +
-        '</th>';
-    });
-    html += '<th>Total</th></tr></thead><tbody>';
 
-    data.members.forEach(function(m) {
-      html += '<tr><td>' + esc(m) +
-        (isSuperAdmin ? ' <button class="dash-del-btn" data-del-member="' + esc(m) + '" title="Delete member">&#10005;</button>' : '') +
-        '</td>';
-      var rowTotal = 0;
-      data.categories.forEach(function(c) {
-        var v = (data.totals[m] && data.totals[m][c.id]) || 0;
-        rowTotal += v;
-        if (isSuperAdmin) {
-          html += '<td><div class="dash-cell-edit">' +
-            '<button class="dash-mini-btn minus" data-person="' + esc(m) + '" data-cat="' + esc(c.id) + '" data-dir="-1">−</button>' +
-            '<span class="dash-cell-val" data-person="' + esc(m) + '" data-cat="' + esc(c.id) + '">' + v + '</span>' +
-            '<button class="dash-mini-btn plus" data-person="' + esc(m) + '" data-cat="' + esc(c.id) + '" data-dir="1">+</button>' +
-            '</div></td>';
-        } else {
-          html += '<td><span class="dash-cell-val">' + v + '</span></td>';
-        }
+    function buildIndividualTable(cats, heading) {
+      if (!cats.length) return '';
+      var h = '<div class="rnr-track-heading">' + heading + '</div>';
+      h += '<table class="dash-table"><thead><tr><th>Member</th>';
+      cats.forEach(function(c) {
+        h += '<th>' + esc(c.name) +
+          (isSuperAdmin ? ' <button class="dash-del-btn" data-del-cat="' + esc(c.id) + '" data-del-cat-name="' + esc(c.name) + '" title="Delete KPI">&#10005;</button>' : '') +
+          '</th>';
       });
-      html += '<td><span class="dash-cell-val dash-row-total" data-person="' + esc(m) + '">' + rowTotal + '</span></td></tr>';
-    });
+      h += '<th>Total</th></tr></thead><tbody>';
 
-    html += '</tbody></table>';
+      data.members.forEach(function(m) {
+        h += '<tr><td>' + esc(m) +
+          (isSuperAdmin ? ' <button class="dash-del-btn" data-del-member="' + esc(m) + '" title="Delete member">&#10005;</button>' : '') +
+          '</td>';
+        var rowTotal = 0;
+        cats.forEach(function(c) {
+          var v = (data.totals[m] && data.totals[m][c.id]) || 0;
+          rowTotal += v;
+          if (isSuperAdmin) {
+            h += '<td><div class="dash-cell-edit">' +
+              '<button class="dash-mini-btn minus" data-person="' + esc(m) + '" data-cat="' + esc(c.id) + '" data-dir="-1">\u2212</button>' +
+              '<span class="dash-cell-val" data-person="' + esc(m) + '" data-cat="' + esc(c.id) + '">' + v + '</span>' +
+              '<button class="dash-mini-btn plus" data-person="' + esc(m) + '" data-cat="' + esc(c.id) + '" data-dir="1">+</button>' +
+              '</div></td>';
+          } else {
+            h += '<td><span class="dash-cell-val">' + v + '</span></td>';
+          }
+        });
+        h += '<td><span class="dash-cell-val dash-row-total" data-person="' + esc(m) + '">' + rowTotal + '</span></td></tr>';
+      });
+      h += '</tbody></table>';
+      return h;
+    }
+
+    var html = buildIndividualTable(kpiCats, 'Team KPIs') + buildIndividualTable(rnrCats, 'RnR Competition');
     el.innerHTML = html;
 
     if (isSuperAdmin) {
@@ -1864,9 +1907,9 @@ function renderDashboard() {
 // ── Log Action ──────────────────────────────────────────────
 
 function loadLogCards() {
-  var el = document.getElementById('log-cards');
+  var el = document.getElementById('log-cards-wrapper');
   var btn = document.getElementById('log-refresh');
-  el.innerHTML = '<div class="loading-center" style="grid-column:1/-1"><div class="spinner"></div></div>';
+  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
   btn.classList.add('spinning');
 
   api('getSummary', { teamId: currentTeamId }).then(function(data) {
@@ -1878,34 +1921,68 @@ function loadLogCards() {
     var cats = data.categories;
     categoriesCache = cats;
 
-    // Filter categories: only show tasks the member can complete (their team track + General)
+    // Build RnR name lookup
     var rnrNames = {};
-    RNR_TASKS.forEach(function(t) { rnrNames[t.name.toLowerCase()] = t.track; });
-    var filteredCats = cats.filter(function(c) {
-      var track = rnrNames[c.name.toLowerCase()];
-      if (!track) return true; // not an RnR category, always show
-      return track === 'General' || track.toLowerCase() === currentTeamName.toLowerCase();
+    RNR_TASKS.forEach(function(t) { rnrNames[t.name.toLowerCase()] = t; });
+
+    // Split into Team KPIs vs RnR tasks (filtered by team track + General)
+    var kpiCats = [];
+    var rnrCats = [];
+    cats.forEach(function(c) {
+      var task = rnrNames[c.name.toLowerCase()];
+      if (!task) {
+        kpiCats.push(c);
+      } else if (task.track === 'General' || task.track.toLowerCase() === currentTeamName.toLowerCase()) {
+        rnrCats.push({ cat: c, task: task });
+      }
     });
 
-    if (!filteredCats.length) {
+    if (!kpiCats.length && !rnrCats.length) {
       el.innerHTML = '<div class="log-empty">No categories yet. Create one first!</div>';
       return;
     }
 
     var myTotals = (data.totals && data.totals[currentUser]) || {};
-
     var html = '';
-    filteredCats.forEach(function(c) {
-      var count = myTotals[c.id] || 0;
-      html += '<div class="log-card" data-cat-id="' + esc(c.id) + '" data-cat-name="' + esc(c.name) + '">' +
-        '<div class="log-card-name">' + esc(c.name) + '</div>' +
-        '<div class="log-card-btns">' +
-        '<button class="log-card-minus">−</button>' +
-        '<button class="log-card-plus">+</button>' +
-        '</div>' +
-        '<div class="log-card-count">You: ' + count + '</div>' +
-        '</div>';
-    });
+
+    // Team KPIs section
+    if (kpiCats.length) {
+      html += '<div class="rnr-track-heading">Team KPIs</div>';
+      html += '<div class="log-cards">';
+      kpiCats.forEach(function(c) {
+        var count = myTotals[c.id] || 0;
+        html += '<div class="log-card" data-cat-id="' + esc(c.id) + '" data-cat-name="' + esc(c.name) + '">' +
+          '<div class="log-card-name">' + esc(c.name) + '</div>' +
+          '<div class="log-card-btns">' +
+          '<button class="log-card-minus">\u2212</button>' +
+          '<button class="log-card-plus">+</button>' +
+          '</div>' +
+          '<div class="log-card-count">You: ' + count + '</div>' +
+          '</div>';
+      });
+      html += '</div>';
+    }
+
+    // RnR section
+    if (rnrCats.length) {
+      html += '<div class="rnr-track-heading">RnR Competition</div>';
+      html += '<div class="log-cards">';
+      rnrCats.forEach(function(entry) {
+        var c = entry.cat;
+        var count = myTotals[c.id] || 0;
+        html += '<div class="log-card" data-cat-id="' + esc(c.id) + '" data-cat-name="' + esc(c.name) + '">' +
+          '<div class="log-card-name">' + esc(c.name) + '</div>' +
+          '<div class="rnr-points">+' + entry.task.points + ' pts</div>' +
+          '<div class="log-card-btns">' +
+          '<button class="log-card-minus">\u2212</button>' +
+          '<button class="log-card-plus">+</button>' +
+          '</div>' +
+          '<div class="log-card-count">You: ' + count + '</div>' +
+          '</div>';
+      });
+      html += '</div>';
+    }
+
     el.innerHTML = html;
 
     el.querySelectorAll('.log-card').forEach(function(card) {
