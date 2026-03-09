@@ -553,6 +553,9 @@ html, body {
   font-size: 12px;
   color: var(--text-dim);
   margin-top: 4px;
+  cursor: pointer;
+  border-bottom: 1px dashed var(--text-dim);
+  display: inline-block;
 }
 
 .log-empty {
@@ -886,6 +889,68 @@ html, body {
 }
 
 .profile-manage-btn:active { border-color: var(--gold); }
+
+/* ── Profile RnR Breakdown ───────────────────────────────── */
+
+.profile-rnr-breakdown {
+  padding: 0 12px;
+  margin-bottom: 20px;
+}
+
+.profile-rnr-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  color: var(--gold);
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.profile-rnr-total {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  color: var(--gold);
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+}
+
+.profile-rnr-rank {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+}
+
+.profile-rnr-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--bg2);
+  border-radius: var(--radius);
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.profile-rnr-item-zero {
+  opacity: 0.4;
+}
+
+.profile-rnr-item-name {
+  flex: 1;
+  color: var(--text);
+}
+
+.profile-rnr-item-calc {
+  color: var(--text-dim);
+  font-size: 11px;
+  margin-right: 10px;
+}
+
+.profile-rnr-item-pts {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  color: var(--gold);
+  min-width: 40px;
+  text-align: right;
+}
 
 /* ── Manage Team ─────────────────────────────────────────── */
 
@@ -1383,6 +1448,7 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
     <div class="profile-stat-card"><div class="profile-stat-val" id="profile-top-kpi">—</div><div class="profile-stat-label" id="profile-top-kpi-label">Top KPI</div></div>
     <div class="profile-stat-card"><div class="profile-stat-val" id="profile-since">—</div><div class="profile-stat-label">Member Since</div></div>
   </div>
+  <div id="profile-rnr-breakdown" class="profile-rnr-breakdown"></div>
   <button id="profile-password-btn" class="profile-manage-btn" onclick="changePassword()">Set Password</button>
   <button class="profile-manage-btn admin-only" onclick="goTo('manageteam')">Manage Team</button>
 </div>
@@ -1764,19 +1830,15 @@ function invalidateApiCache() {
 }
 
 function fetchAllTeamsSummaries() {
-  return apiCached('getTeams').then(function(teams) {
-    if (teams.error || !Array.isArray(teams) || !teams.length) {
-      return [];
-    }
-    var promises = teams.map(function(t) {
-      return apiCached('getSummary', { teamId: t.id }).then(function(data) {
-        return { team: t, summary: data };
-      });
-    });
-    return Promise.all(promises).then(function(results) {
-      return results.filter(function(r) {
-        return r.summary && !r.summary.error && r.summary.categories;
-      });
+  return apiCached('getAllSummaries').then(function(data) {
+    if (!Array.isArray(data) || data.error) return [];
+    return data.map(function(t) {
+      return {
+        team: { id: t.id, name: t.name },
+        summary: { categories: t.categories, members: t.members, totals: t.totals }
+      };
+    }).filter(function(r) {
+      return r.summary && r.summary.categories;
     });
   });
 }
@@ -2146,6 +2208,29 @@ function loadLogCards() {
       card.querySelector('.log-card-minus').addEventListener('click', function(e) {
         e.stopPropagation();
         logSubtract(card.dataset.catId, card.dataset.catName);
+      });
+      card.querySelector('.log-card-count').addEventListener('click', function(e) {
+        e.stopPropagation();
+        var countEl = this;
+        var cur = parseInt(countEl.textContent.replace('You: ', ''), 10) || 0;
+        var input = prompt('Set count:', cur);
+        if (input === null) return;
+        var newVal = parseInt(input, 10);
+        if (isNaN(newVal) || newVal < 0) { showToast('Invalid number'); return; }
+        var diff = newVal - cur;
+        if (diff === 0) return;
+        // Optimistic UI
+        countEl.textContent = 'You: ' + newVal;
+        showToast((diff > 0 ? '+' : '') + diff + ' ' + card.dataset.catName);
+        api('addLog', { person: currentUser, categoryId: card.dataset.catId, count: diff }).then(function(res) {
+          if (!res.ok) {
+            showToast('Error: ' + (res.error || 'unknown'));
+            countEl.textContent = 'You: ' + cur;
+          } else {
+            invalidateApiCache();
+            screenLastLoaded = {};
+          }
+        });
       });
     });
   });
@@ -2567,6 +2652,103 @@ function loadProfile() {
     } else {
       btn.textContent = 'Set Password';
     }
+  });
+
+  // RnR Breakdown
+  var rnrEl = document.getElementById('profile-rnr-breakdown');
+  rnrEl.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+
+  fetchAllTeamsSummaries().then(function(results) {
+    if (!results.length) { rnrEl.innerHTML = ''; return; }
+
+    // Aggregate per-task scores for current user across all teams
+    var taskScores = []; // { name, points, calc, score }
+    var totalScore = 0;
+    var scoreMap = {}; // person → total (for ranking)
+
+    results.forEach(function(r) {
+      var teamName = r.team.name;
+      var cats = r.summary.categories;
+      var allTotals = r.summary.totals || {};
+      var catByName = {};
+      cats.forEach(function(c) { catByName[c.name.toLowerCase()] = c; });
+
+      var teamTasks = RNR_TASKS.filter(function(t) {
+        return t.track === 'General' || t.track.toLowerCase() === teamName.toLowerCase();
+      });
+
+      // Accumulate scores for all people (for ranking)
+      Object.keys(allTotals).forEach(function(person) {
+        var personTotals = allTotals[person];
+        var score = 0;
+        teamTasks.forEach(function(t) {
+          if (t.threshold && t.sourceKpis) {
+            var total = 0;
+            t.sourceKpis.forEach(function(kpiName) {
+              var cat = catByName[kpiName.toLowerCase()];
+              if (cat) total += personTotals[cat.id] || 0;
+            });
+            score += Math.floor(total / t.threshold) * t.points;
+          } else {
+            var cat = catByName[t.name.toLowerCase()];
+            if (cat) score += (personTotals[cat.id] || 0) * t.points;
+          }
+        });
+        scoreMap[person] = (scoreMap[person] || 0) + score;
+      });
+
+      // Only compute per-task detail for tasks relevant to user's team or General
+      var isMyTeam = r.team.id === currentTeamId;
+      if (!isMyTeam) return; // per-task breakdown only for own team
+
+      var myTotals = allTotals[currentUser] || {};
+
+      teamTasks.forEach(function(t) {
+        var score = 0;
+        var calc = '';
+        if (t.threshold && t.sourceKpis) {
+          var total = 0;
+          t.sourceKpis.forEach(function(kpiName) {
+            var cat = catByName[kpiName.toLowerCase()];
+            if (cat) total += myTotals[cat.id] || 0;
+          });
+          var times = Math.floor(total / t.threshold);
+          score = times * t.points;
+          calc = total + '/' + t.threshold + ' \u00d7 ' + t.points;
+        } else {
+          var cat = catByName[t.name.toLowerCase()];
+          var count = cat ? (myTotals[cat.id] || 0) : 0;
+          score = count * t.points;
+          calc = count + ' \u00d7 ' + t.points;
+        }
+        taskScores.push({ name: t.name, score: score, calc: calc });
+        totalScore += score;
+      });
+    });
+
+    // Also add scores from other teams for current user (General tasks counted there)
+    // totalScore from scoreMap is more accurate for ranking
+    var myRank = 1;
+    var totalPeople = Object.keys(scoreMap).length;
+    var myTotal = scoreMap[currentUser] || 0;
+    Object.keys(scoreMap).forEach(function(p) {
+      if (scoreMap[p] > myTotal) myRank++;
+    });
+
+    var html = '<div class="profile-rnr-title">Your RnR Points</div>';
+    html += '<div class="profile-rnr-total">' + myTotal + ' pts</div>';
+    html += '<div class="profile-rnr-rank">You are #' + myRank + ' of ' + totalPeople + '</div>';
+
+    taskScores.forEach(function(ts) {
+      var zeroClass = ts.score === 0 ? ' profile-rnr-item-zero' : '';
+      html += '<div class="profile-rnr-item' + zeroClass + '">' +
+        '<span class="profile-rnr-item-name">' + esc(ts.name) + '</span>' +
+        '<span class="profile-rnr-item-calc">' + ts.calc + '</span>' +
+        '<span class="profile-rnr-item-pts">' + ts.score + '</span>' +
+        '</div>';
+    });
+
+    rnrEl.innerHTML = html;
   });
 }
 

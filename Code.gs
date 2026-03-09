@@ -71,6 +71,9 @@ function doGet(e) {
       case 'deleteLogsByPerson':
         result = deleteLogsByPerson(e.parameter.name);
         break;
+      case 'getAllSummaries':
+        result = getAllSummaries();
+        break;
       default:
         result = { error: 'Unknown action: ' + action };
     }
@@ -508,4 +511,81 @@ function removeMemberFromTeam(name) {
     }
   }
   return { error: 'Member not found' };
+}
+
+// ── All Summaries (batch) ────────────────────────────────────
+
+function getAllSummaries() {
+  var teamsSheet = SS.getSheetByName('Teams');
+  if (!teamsSheet) return [];
+  var teams = teamsSheet.getDataRange().getValues().slice(1);
+
+  var catsSheet = SS.getSheetByName('Categories');
+  var allCats = catsSheet ? catsSheet.getDataRange().getValues().slice(1) : [];
+
+  var membersSheet = SS.getSheetByName('Members');
+  var allMembers = membersSheet ? membersSheet.getDataRange().getValues().slice(1) : [];
+
+  var logsSheet = SS.getSheetByName('Logs');
+  var allLogs = logsSheet ? logsSheet.getDataRange().getValues().slice(1) : [];
+
+  // Build categories array with parsed objects
+  var cats = allCats.map(function(r) {
+    return { id: r[0], name: r[1], createdBy: r[2], teamId: r[3] || '' };
+  });
+
+  // Group categories by teamId
+  var catsByTeam = {}; // teamId → [cat]
+  var globalCats = [];  // cats with no teamId (shared)
+  cats.forEach(function(c) {
+    if (c.teamId) {
+      if (!catsByTeam[c.teamId]) catsByTeam[c.teamId] = [];
+      catsByTeam[c.teamId].push(c);
+    } else {
+      globalCats.push(c);
+    }
+  });
+
+  // Group members by teamId
+  var membersByTeam = {};
+  allMembers.forEach(function(r) {
+    var tid = r[2] || '';
+    if (tid) {
+      if (!membersByTeam[tid]) membersByTeam[tid] = [];
+      membersByTeam[tid].push(r[0]);
+    }
+  });
+
+  // Build per-team results
+  return teams.map(function(t) {
+    var teamId = t[0];
+    var teamName = t[1];
+    var teamCats = (catsByTeam[teamId] || []).concat(globalCats);
+    var catIds = {};
+    teamCats.forEach(function(c) { catIds[c.id] = true; });
+
+    // Build totals from logs
+    var totals = {};
+    allLogs.forEach(function(r) {
+      var person = r[1];
+      var catId = r[2];
+      var cnt = parseInt(r[4], 10) || 0;
+      if (!catIds[catId]) return;
+      if (!totals[person]) totals[person] = {};
+      totals[person][catId] = (totals[person][catId] || 0) + cnt;
+    });
+
+    // Ensure all team members appear
+    (membersByTeam[teamId] || []).forEach(function(name) {
+      if (!totals[name]) totals[name] = {};
+    });
+
+    return {
+      id: teamId,
+      name: teamName,
+      categories: teamCats,
+      members: Object.keys(totals).sort(),
+      totals: totals
+    };
+  });
 }
