@@ -2001,13 +2001,17 @@ function loadLogCards() {
     var mySourceKpis = RNR_SOURCE_KPIS.filter(function(s) {
       return s.track.toLowerCase() === currentTeamName.toLowerCase();
     });
-    // Also auto-create direct (non-threshold) track-specific RnR tasks
+    // Also auto-create direct (non-threshold) track-specific RnR tasks and General tasks
     var myDirectTasks = RNR_TASKS.filter(function(t) {
       return !t.threshold && t.track !== 'General' && t.track.toLowerCase() === currentTeamName.toLowerCase();
     });
+    var generalTasks = RNR_TASKS.filter(function(t) {
+      return t.track === 'General';
+    });
     var missingSource = mySourceKpis.filter(function(s) { return !catByName[s.name.toLowerCase()]; });
     var missingDirect = myDirectTasks.filter(function(t) { return !catByName[t.name.toLowerCase()]; });
-    var allMissing = missingSource.concat(missingDirect);
+    var missingGeneral = generalTasks.filter(function(t) { return !catByName[t.name.toLowerCase()]; });
+    var allMissing = missingSource.concat(missingDirect).concat(missingGeneral);
     if (allMissing.length) {
       var created = 0;
       allMissing.forEach(function(item) {
