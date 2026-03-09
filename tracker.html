@@ -1466,6 +1466,16 @@ document.addEventListener('DOMContentLoaded', function() {
   // Auto-login if name and team are saved
   if (currentUser && currentTeamId) {
     goTo('home');
+    // Re-check team in background in case user was moved
+    api('checkName', { name: currentUser }).then(function(res) {
+      if (res.exists && res.teamId && res.teamId !== currentTeamId) {
+        currentTeamId = res.teamId;
+        currentTeamName = res.teamName;
+        localStorage.setItem('tt_teamId', res.teamId);
+        localStorage.setItem('tt_teamName', res.teamName);
+        document.getElementById('home-team-badge').textContent = res.teamName;
+      }
+    });
   } else if (currentUser) {
     goTo('teamselect');
   }
