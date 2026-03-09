@@ -2147,89 +2147,113 @@ function loadRnR() {
   el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
   btn.classList.add('spinning');
 
-  api('getSummary', { teamId: currentTeamId }).then(function(data) {
-    btn.classList.remove('spinning');
-    if (data.error || !data.categories) {
+  // Fetch all teams so we can aggregate scores across every team
+  api('getTeams').then(function(teams) {
+    if (teams.error || !Array.isArray(teams) || !teams.length) {
+      btn.classList.remove('spinning');
       el.innerHTML = '<div class="log-empty">Could not load RnR data</div>';
       return;
     }
 
-    var cats = data.categories;
-    var allTotals = data.totals || {};
-
-    // Build lookup: category name (lowercase) → category object
-    var catByName = {};
-    cats.forEach(function(c) { catByName[c.name.toLowerCase()] = c; });
-
-    // Filter tasks relevant to this team
-    var myTasks = RNR_TASKS.filter(function(t) {
-      return t.track === 'General' || t.track.toLowerCase() === currentTeamName.toLowerCase();
+    var promises = teams.map(function(t) {
+      return api('getSummary', { teamId: t.id }).then(function(data) {
+        return { team: t, summary: data };
+      });
     });
 
-    // Auto-create missing categories (direct tasks only, not threshold-based)
-    var missing = myTasks.filter(function(t) { return !t.threshold && !catByName[t.name.toLowerCase()]; });
-    // Also auto-create sourceKpi categories
-    var mySourceKpis = RNR_SOURCE_KPIS.filter(function(s) {
-      return s.track.toLowerCase() === currentTeamName.toLowerCase();
-    });
-    var missingSource = mySourceKpis.filter(function(s) { return !catByName[s.name.toLowerCase()]; });
-    var allMissing = missing.concat(missingSource);
-    if (allMissing.length) {
-      var created = 0;
-      allMissing.forEach(function(t) {
-        api('addCategory', { name: t.name, person: currentUser, teamId: currentTeamId }).then(function(res) {
-          created++;
-          if (created >= allMissing.length) loadRnR();
+    Promise.all(promises).then(function(results) {
+      btn.classList.remove('spinning');
+      var validResults = results.filter(function(r) {
+        return r.summary && !r.summary.error && r.summary.categories;
+      });
+
+      // Auto-create missing categories for the current team only
+      var myResult = validResults.find(function(r) { return r.team.id === currentTeamId; });
+      if (myResult) {
+        var catByName = {};
+        myResult.summary.categories.forEach(function(c) { catByName[c.name.toLowerCase()] = c; });
+        var myTasks = RNR_TASKS.filter(function(t) {
+          return t.track === 'General' || t.track.toLowerCase() === currentTeamName.toLowerCase();
+        });
+        var missing = myTasks.filter(function(t) { return !t.threshold && !catByName[t.name.toLowerCase()]; });
+        var mySourceKpis = RNR_SOURCE_KPIS.filter(function(s) {
+          return s.track.toLowerCase() === currentTeamName.toLowerCase();
+        });
+        var missingSource = mySourceKpis.filter(function(s) { return !catByName[s.name.toLowerCase()]; });
+        var allMissing = missing.concat(missingSource);
+        if (allMissing.length) {
+          var created = 0;
+          allMissing.forEach(function(t) {
+            api('addCategory', { name: t.name, person: currentUser, teamId: currentTeamId }).then(function(res) {
+              created++;
+              if (created >= allMissing.length) loadRnR();
+            });
+          });
+          return;
+        }
+      }
+
+      // Aggregate scores across all teams
+      var scoreMap = {}; // person → total score
+      validResults.forEach(function(r) {
+        var teamName = r.team.name;
+        var cats = r.summary.categories;
+        var allTotals = r.summary.totals || {};
+
+        var catByName = {};
+        cats.forEach(function(c) { catByName[c.name.toLowerCase()] = c; });
+
+        // Determine which RnR tasks apply to this team
+        var teamTasks = RNR_TASKS.filter(function(t) {
+          return t.track === 'General' || t.track.toLowerCase() === teamName.toLowerCase();
+        });
+
+        Object.keys(allTotals).forEach(function(person) {
+          var personTotals = allTotals[person];
+          var score = 0;
+          teamTasks.forEach(function(t) {
+            if (t.threshold && t.sourceKpis) {
+              var total = 0;
+              t.sourceKpis.forEach(function(kpiName) {
+                var cat = catByName[kpiName.toLowerCase()];
+                if (cat) total += personTotals[cat.id] || 0;
+              });
+              score += Math.floor(total / t.threshold) * t.points;
+            } else {
+              var cat = catByName[t.name.toLowerCase()];
+              if (cat) score += (personTotals[cat.id] || 0) * t.points;
+            }
+          });
+          scoreMap[person] = (scoreMap[person] || 0) + score;
         });
       });
-      return;
-    }
 
-    // Calculate score for each person
-    var scores = [];
-    Object.keys(allTotals).forEach(function(person) {
-      var personTotals = allTotals[person];
-      var score = 0;
-      myTasks.forEach(function(t) {
-        if (t.threshold && t.sourceKpis) {
-          // Threshold-based: sum sourceKpi counts, floor divide by threshold
-          var total = 0;
-          t.sourceKpis.forEach(function(kpiName) {
-            var cat = catByName[kpiName.toLowerCase()];
-            if (cat) total += personTotals[cat.id] || 0;
-          });
-          score += Math.floor(total / t.threshold) * t.points;
-        } else {
-          // Direct: count * points
-          var cat = catByName[t.name.toLowerCase()];
-          if (cat) score += (personTotals[cat.id] || 0) * t.points;
-        }
+      // Build sorted leaderboard
+      var scores = Object.keys(scoreMap).map(function(name) {
+        return { name: name, score: scoreMap[name] };
       });
-      scores.push({ name: person, score: score });
+      scores.sort(function(a, b) { return b.score - a.score; });
+
+      // Render leaderboard
+      var html = '<div class="rnr-track-heading">Leaderboard</div>';
+
+      if (!scores.length) {
+        html += '<div class="log-empty">No scores yet</div>';
+      } else {
+        scores.forEach(function(entry, i) {
+          var rank = i + 1;
+          var medal = rank === 1 ? '\uD83E\uDD47' : rank === 2 ? '\uD83E\uDD48' : rank === 3 ? '\uD83E\uDD49' : '';
+          var isMe = entry.name === currentUser;
+          html += '<div class="rnr-row' + (isMe ? ' rnr-row-me' : '') + '">' +
+            '<span class="rnr-rank">' + (medal || rank) + '</span>' +
+            '<span class="rnr-name">' + esc(entry.name) + '</span>' +
+            '<span class="rnr-pts">' + entry.score + ' pts</span>' +
+            '</div>';
+        });
+      }
+
+      el.innerHTML = html;
     });
-
-    // Sort by score descending
-    scores.sort(function(a, b) { return b.score - a.score; });
-
-    // Render leaderboard
-    var html = '<div class="rnr-track-heading">Leaderboard</div>';
-
-    if (!scores.length) {
-      html += '<div class="log-empty">No scores yet</div>';
-    } else {
-      scores.forEach(function(entry, i) {
-        var rank = i + 1;
-        var medal = rank === 1 ? '\uD83E\uDD47' : rank === 2 ? '\uD83E\uDD48' : rank === 3 ? '\uD83E\uDD49' : '';
-        var isMe = entry.name === currentUser;
-        html += '<div class="rnr-row' + (isMe ? ' rnr-row-me' : '') + '">' +
-          '<span class="rnr-rank">' + (medal || rank) + '</span>' +
-          '<span class="rnr-name">' + esc(entry.name) + '</span>' +
-          '<span class="rnr-pts">' + entry.score + ' pts</span>' +
-          '</div>';
-      });
-    }
-
-    el.innerHTML = html;
   });
 }
 
