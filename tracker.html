@@ -1410,10 +1410,27 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
   <div class="header">
     <button class="back-btn" onclick="goTo('hub')">&#9664; Back</button>
     <h1>Hackathon</h1>
-    <button class="refresh-btn" id="hack-log-refresh" onclick="invalidateApiCache();delete screenLastLoaded['hackathon'];loadHackathonLog()">&#8635;</button>
+  </div>
+  <div class="home-grid">
+    <div class="home-tile" onclick="goTo('hacklog')">
+      <div class="home-tile-icon">&#10133;</div>
+      <div class="home-tile-label">Log Action</div>
+      <div class="home-tile-desc">Track a KPI</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     HACKATHON LOG SCREEN
+     ══════════════════════════════════════════════════════════════ -->
+<div id="hacklog-screen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goTo('hackathon')">&#9664; Back</button>
+    <h1>Log Action</h1>
+    <button class="refresh-btn" id="hack-log-refresh" onclick="invalidateApiCache();delete screenLastLoaded['hacklog'];loadHackathonLog()">&#8635;</button>
   </div>
   <div id="hack-log-wrapper">
-    <div class="loading-center"><div class="spinner"></div></div>
+    <div class="log-empty">No categories yet</div>
   </div>
 </div>
 
@@ -1621,6 +1638,7 @@ const SCREENS = {
   teamselect: 'team-screen',
   hub:        'hub-screen',
   hackathon:  'hackathon-screen',
+  hacklog:    'hacklog-screen',
   home:       'home-screen',
   dashboard:  'dash-screen',
   log:        'log-screen',
@@ -1868,7 +1886,9 @@ function goTo(screen) {
       document.getElementById('hub-team-badge').textContent = currentTeamName;
       break;
     case 'hackathon':
-      if (!screenIsFresh('hackathon')) loadHackathonLog();
+      break;
+    case 'hacklog':
+      if (!screenIsFresh('hacklog')) loadHackathonLog();
       break;
     case 'home':
       document.getElementById('home-greeting').textContent = 'Hello, ' + currentUser;
@@ -2367,7 +2387,7 @@ function loadHackathonLog() {
 
   apiCached('getSummary', { teamId: currentTeamId }).then(function(data) {
     btn.classList.remove('spinning');
-    screenLastLoaded['hackathon'] = Date.now();
+    screenLastLoaded['hacklog'] = Date.now();
     if (data.error || !data.categories) {
       el.innerHTML = '<div class="log-empty">Could not load categories</div>';
       return;
