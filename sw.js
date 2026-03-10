@@ -3,7 +3,7 @@
 //  Cache shell assets, network-first for API calls
 // ══════════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'teamtrack-v39';
+const CACHE_NAME = 'teamtrack-v40';
 const SHELL_ASSETS = [
   './',
   'tracker.html',
