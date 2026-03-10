@@ -349,6 +349,72 @@ html, body {
   text-decoration: underline;
 }
 
+/* ── Hub ─────────────────────────────────────────────────── */
+
+.hub-greeting {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  color: var(--text);
+  text-align: center;
+  margin-top: 8px;
+}
+
+.hub-team-badge {
+  background: var(--gold);
+  color: var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin: 0 auto 8px;
+  text-align: center;
+  width: fit-content;
+}
+
+.hub-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 24px 0;
+}
+
+.hub-tile {
+  background: var(--bg2);
+  border: 2px solid var(--bg3);
+  border-radius: var(--radius);
+  padding: 40px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.hub-tile:active { border-color: var(--gold); }
+
+.hub-tile-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.hub-tile-label {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+
+.hub-tile-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 6px;
+}
+
+.hackathon-coming {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 16px;
+  margin-top: 48px;
+}
+
 /* ── Dashboard ───────────────────────────────────────────── */
 
 .dash-scroll {
@@ -1314,10 +1380,46 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════
+     HUB SCREEN
+     ══════════════════════════════════════════════════════════════ -->
+<div id="hub-screen" class="screen">
+  <div class="header">
+    <h1>TeamTrack</h1>
+  </div>
+  <div class="hub-greeting" id="hub-greeting"></div>
+  <div class="hub-team-badge" id="hub-team-badge"></div>
+  <div class="hub-grid">
+    <div class="hub-tile" onclick="goTo('home')">
+      <div class="hub-tile-icon">&#128202;</div>
+      <div class="hub-tile-label">TeamTracker</div>
+      <div class="hub-tile-desc">KPI tracking &amp; dashboards</div>
+    </div>
+    <div class="hub-tile" onclick="goTo('hackathon')">
+      <div class="hub-tile-icon">&#128187;</div>
+      <div class="hub-tile-label">Hackathon</div>
+      <div class="hub-tile-desc">Build &amp; compete</div>
+    </div>
+  </div>
+  <div class="logout-link" onclick="logout()">Switch user</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     HACKATHON SCREEN
+     ══════════════════════════════════════════════════════════════ -->
+<div id="hackathon-screen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goTo('hub')">&#9664; Back</button>
+    <h1>Hackathon</h1>
+  </div>
+  <div class="hackathon-coming">Coming soon</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
      HOME SCREEN
      ══════════════════════════════════════════════════════════════ -->
 <div id="home-screen" class="screen">
   <div class="header">
+    <button class="back-btn" onclick="goTo('hub')">&#9664; Back</button>
     <h1>TeamTrack</h1>
   </div>
   <div class="profile-header-area" onclick="goTo('profile')">
@@ -1514,6 +1616,8 @@ var isAdmin = new URLSearchParams(window.location.search).has('admin');
 const SCREENS = {
   login:      'login-screen',
   teamselect: 'team-screen',
+  hub:        'hub-screen',
+  hackathon:  'hackathon-screen',
   home:       'home-screen',
   dashboard:  'dash-screen',
   log:        'log-screen',
@@ -1553,7 +1657,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Auto-login if name and team are saved
   if (currentUser && currentTeamId) {
-    goTo('home');
+    goTo('hub');
     // Re-check team in background in case user was moved
     api('checkName', { name: currentUser }).then(function(res) {
       if (res.exists && res.teamId && res.teamId !== currentTeamId) {
@@ -1660,7 +1764,7 @@ function finishLogin(name, res) {
     currentTeamName = res.teamName;
     localStorage.setItem('tt_teamId', res.teamId);
     localStorage.setItem('tt_teamName', res.teamName);
-    goTo('home');
+    goTo('hub');
   } else {
     goTo('teamselect');
   }
@@ -1718,7 +1822,7 @@ function selectTeam(teamId, teamName) {
   localStorage.setItem('tt_teamId', teamId);
   localStorage.setItem('tt_teamName', teamName);
   api('registerMember', { name: currentUser, teamId: teamId });
-  goTo('home');
+  goTo('hub');
 }
 
 function createTeam() {
@@ -1756,6 +1860,12 @@ function goTo(screen) {
 
   // Load data for the screen (skip if recently loaded)
   switch (screen) {
+    case 'hub':
+      document.getElementById('hub-greeting').textContent = 'Hello, ' + currentUser;
+      document.getElementById('hub-team-badge').textContent = currentTeamName;
+      break;
+    case 'hackathon':
+      break;
     case 'home':
       document.getElementById('home-greeting').textContent = 'Hello, ' + currentUser;
       document.getElementById('home-team-badge').textContent = currentTeamName;
