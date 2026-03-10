@@ -2941,15 +2941,15 @@ function removeMember(name) {
 }
 
 function fullDeleteMember(name) {
-  if (!confirm('Permanently delete ' + name + ' from the app? This cannot be undone.')) return;
-  api('deleteMember', { name: name }).then(function(res) {
-    if (res.ok) {
-      invalidateApiCache(); screenLastLoaded = {};
-      showToast(name + ' deleted');
-      loadManageTeam();
-    } else {
-      showToast('Error: ' + (res.error || 'unknown'));
-    }
+  if (!confirm('Permanently delete ' + name + ' and all their logs? This cannot be undone.')) return;
+  Promise.all([
+    api('deleteMember', { name: name }),
+    api('deleteLogsByPerson', { name: name })
+  ]).then(function(results) {
+    var logRes = results[1];
+    invalidateApiCache(); screenLastLoaded = {};
+    showToast(name + ' deleted (' + (logRes.deleted || 0) + ' logs removed)');
+    loadManageTeam();
   });
 }
 
