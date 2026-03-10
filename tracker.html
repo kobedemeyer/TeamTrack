@@ -20,14 +20,18 @@
   --bg: #ffffff;
   --bg2: #f0f2f5;
   --bg3: #e0e4e8;
-  --gold: #037ef3;
-  --gold-light: #3898f5;
-  --gold-dim: #b0b8c4;
+  --accent: #037ef3;
+  --accent-light: #3898f5;
+  --accent-dim: #b0b8c4;
   --text: #1a1a1a;
   --text-dim: #6b7280;
   --red: #dc3545;
   --green: #28a745;
+  --accent-warm: #f59e0b;
+  --accent-warm-light: #fbbf24;
   --radius: 12px;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-hover: 0 4px 12px rgba(0,0,0,0.10);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -74,15 +78,15 @@ html, body {
 .header h1 {
   font-family: 'Bebas Neue', sans-serif;
   font-size: clamp(24px, 6vw, 36px);
-  color: var(--gold);
+  color: var(--accent);
   letter-spacing: 2px;
   flex: 1;
 }
 
 .back-btn {
   background: none;
-  border: 2px solid var(--gold-dim);
-  color: var(--gold);
+  border: 2px solid var(--accent-dim);
+  color: var(--accent);
   font-family: 'Barlow', sans-serif;
   font-size: 14px;
   font-weight: 600;
@@ -104,7 +108,7 @@ html, body {
 .login-title {
   font-family: 'Bebas Neue', sans-serif;
   font-size: clamp(48px, 12vw, 72px);
-  color: var(--gold);
+  color: var(--accent);
   letter-spacing: 4px;
   text-align: center;
 }
@@ -121,21 +125,21 @@ html, body {
   font-size: 18px;
   font-family: 'Barlow', sans-serif;
   background: var(--bg2);
-  border: 2px solid var(--gold-dim);
+  border: 2px solid var(--accent-dim);
   border-radius: var(--radius);
   color: var(--text);
   text-align: center;
   outline: none;
 }
 
-.login-input:focus { border-color: var(--gold); }
+.login-input:focus { border-color: var(--accent); }
 
 .login-btn {
   padding: 14px 48px;
   font-size: 18px;
   font-family: 'Bebas Neue', sans-serif;
   letter-spacing: 2px;
-  background: var(--gold);
+  background: var(--accent);
   color: var(--bg);
   border: none;
   border-radius: var(--radius);
@@ -169,14 +173,14 @@ html, body {
   font-size: 18px;
   font-family: 'Barlow', sans-serif;
   background: var(--bg2);
-  border: 2px solid var(--gold-dim);
+  border: 2px solid var(--accent-dim);
   border-radius: var(--radius);
   color: var(--text);
   text-align: center;
   outline: none;
   display: none;
 }
-.login-password:focus { border-color: var(--gold); }
+.login-password:focus { border-color: var(--accent); }
 
 /* ── Team Select screen ──────────────────────────────────── */
 
@@ -189,7 +193,7 @@ html, body {
 .team-heading {
   font-family: 'Bebas Neue', sans-serif;
   font-size: clamp(28px, 8vw, 44px);
-  color: var(--gold);
+  color: var(--accent);
   letter-spacing: 3px;
   text-align: center;
 }
@@ -223,10 +227,10 @@ html, body {
   transition: border-color 0.2s;
 }
 
-.team-btn:active { border-color: var(--gold); }
+.team-btn:active { border-color: var(--accent); }
 
 .team-btn-name {
-  color: var(--gold-light);
+  color: var(--accent-light);
 }
 
 .team-btn-by {
@@ -261,11 +265,11 @@ html, body {
   outline: none;
 }
 
-.team-create-input:focus { border-color: var(--gold); }
+.team-create-input:focus { border-color: var(--accent); }
 
 .team-create-btn {
   padding: 12px 20px;
-  background: var(--gold);
+  background: var(--accent);
   color: var(--bg);
   border: none;
   border-radius: 8px;
@@ -295,7 +299,7 @@ html, body {
 .home-team-badge {
   display: inline-block;
   background: var(--bg3);
-  color: var(--gold-light);
+  color: var(--accent-light);
   font-size: 12px;
   font-weight: 600;
   padding: 4px 12px;
@@ -320,7 +324,7 @@ html, body {
   transition: border-color 0.2s;
 }
 
-.home-tile:active { border-color: var(--gold); }
+.home-tile:active { border-color: var(--accent); }
 
 .home-tile-icon {
   font-size: 36px;
@@ -330,7 +334,7 @@ html, body {
 .home-tile-label {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 20px;
-  color: var(--gold);
+  color: var(--accent);
   letter-spacing: 1px;
 }
 
@@ -360,7 +364,7 @@ html, body {
 }
 
 .hub-team-badge {
-  background: var(--gold);
+  background: var(--accent);
   color: var(--bg);
   font-size: 13px;
   font-weight: 600;
@@ -388,7 +392,7 @@ html, body {
   transition: border-color 0.2s;
 }
 
-.hub-tile:active { border-color: var(--gold); }
+.hub-tile:active { border-color: var(--accent); }
 
 .hub-tile-icon {
   font-size: 48px;
@@ -398,7 +402,7 @@ html, body {
 .hub-tile-label {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 24px;
-  color: var(--gold);
+  color: var(--accent);
   letter-spacing: 1px;
 }
 
@@ -447,9 +451,9 @@ html, body {
 .dash-toggle-btn:last-child { border-radius: 0 8px 8px 0; }
 
 .dash-toggle-btn.active {
-  background: var(--gold);
+  background: var(--accent);
   color: var(--bg);
-  border-color: var(--gold);
+  border-color: var(--accent);
 }
 
 .dash-table {
@@ -468,7 +472,7 @@ html, body {
 
 .dash-table th {
   font-family: 'Bebas Neue', sans-serif;
-  color: var(--gold);
+  color: var(--accent);
   font-size: 15px;
   letter-spacing: 1px;
   position: sticky;
@@ -504,7 +508,7 @@ html, body {
 .dash-cell-edit .dash-cell-val {
   min-width: 20px;
   cursor: pointer;
-  border-bottom: 1px dashed var(--gold-dim);
+  border-bottom: 1px dashed var(--accent-dim);
 }
 
 .dash-mini-btn {
@@ -522,7 +526,7 @@ html, body {
   line-height: 1;
 }
 
-.dash-mini-btn.plus { background: var(--gold); color: #fff; }
+.dash-mini-btn.plus { background: var(--accent); color: #fff; }
 .dash-mini-btn.minus { background: var(--bg3); color: var(--text-dim); }
 .dash-mini-btn:active { opacity: 0.6; }
 
@@ -556,7 +560,7 @@ html, body {
 .dash-team-card-name {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 20px;
-  color: var(--gold);
+  color: var(--accent);
   letter-spacing: 1px;
   margin-bottom: 8px;
 }
@@ -581,7 +585,7 @@ html, body {
 .log-card-name {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 18px;
-  color: var(--gold);
+  color: var(--accent);
   letter-spacing: 1px;
   margin-bottom: 8px;
   word-break: break-word;
@@ -608,7 +612,7 @@ html, body {
 }
 
 .log-card-plus {
-  background: var(--gold);
+  background: var(--accent);
   color: var(--bg);
 }
 
@@ -642,7 +646,7 @@ html, body {
 .rnr-track-heading {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 16px;
-  color: var(--gold-dim);
+  color: var(--accent-dim);
   letter-spacing: 2px;
   text-transform: uppercase;
   margin: 18px 0 8px;
@@ -664,16 +668,18 @@ html, body {
 }
 
 .rnr-row-me {
-  border-color: var(--gold);
+  border-color: var(--accent);
 }
 
 .rnr-rank {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 22px;
-  color: var(--gold);
+  color: var(--accent);
   min-width: 32px;
   text-align: center;
 }
+
+.rnr-row:nth-child(-n+3) .rnr-rank { color: var(--accent-warm); }
 
 .rnr-name {
   flex: 1;
@@ -684,13 +690,13 @@ html, body {
 .rnr-pts {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 18px;
-  color: var(--gold);
+  color: var(--accent);
   letter-spacing: 1px;
 }
 
 .rnr-points {
   display: inline-block;
-  background: var(--gold-dim);
+  background: var(--accent-warm);
   color: var(--bg);
   font-family: 'Bebas Neue', sans-serif;
   font-size: 13px;
@@ -752,7 +758,7 @@ html, body {
 
 .cat-item-team {
   font-size: 11px;
-  color: var(--gold-dim);
+  color: var(--accent-dim);
   margin-top: 2px;
 }
 
@@ -775,11 +781,11 @@ html, body {
   outline: none;
 }
 
-.cat-input:focus { border-color: var(--gold); }
+.cat-input:focus { border-color: var(--accent); }
 
 .cat-add-btn {
   padding: 12px 20px;
-  background: var(--gold);
+  background: var(--accent);
   color: var(--bg);
   border: none;
   border-radius: 8px;
@@ -821,7 +827,7 @@ html, body {
 
 .activity-person {
   font-weight: 700;
-  color: var(--gold-light);
+  color: var(--accent-light);
   font-size: 14px;
 }
 
@@ -849,7 +855,7 @@ html, body {
   width: 24px;
   height: 24px;
   border: 3px solid var(--bg3);
-  border-top-color: var(--gold);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -867,7 +873,7 @@ html, body {
 .refresh-btn {
   background: none;
   border: none;
-  color: var(--gold-dim);
+  color: var(--accent-dim);
   font-size: 20px;
   cursor: pointer;
   padding: 4px 8px;
@@ -887,7 +893,7 @@ html, body {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  border: 3px solid var(--gold);
+  border: 3px solid var(--accent-warm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -900,7 +906,7 @@ html, body {
 .profile-name {
   font-family: 'Bebas Neue', sans-serif;
   font-size: clamp(28px, 7vw, 40px);
-  color: var(--gold);
+  color: var(--accent);
   letter-spacing: 2px;
   text-align: center;
 }
@@ -908,7 +914,7 @@ html, body {
 .profile-team-badge {
   display: inline-block;
   background: var(--bg3);
-  color: var(--gold-light);
+  color: var(--accent-light);
   font-size: 13px;
   font-weight: 600;
   padding: 4px 14px;
@@ -934,7 +940,7 @@ html, body {
 .profile-stat-val {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 24px;
-  color: var(--gold);
+  color: var(--accent);
   letter-spacing: 1px;
 }
 
@@ -953,14 +959,14 @@ html, body {
   font-size: 18px;
   letter-spacing: 2px;
   background: var(--bg2);
-  border: 2px solid var(--gold-dim);
+  border: 2px solid var(--accent-dim);
   border-radius: var(--radius);
-  color: var(--gold);
+  color: var(--accent);
   cursor: pointer;
   text-align: center;
 }
 
-.profile-manage-btn:active { border-color: var(--gold); }
+.profile-manage-btn:active { border-color: var(--accent); }
 
 /* ── Profile RnR Breakdown ───────────────────────────────── */
 
@@ -972,7 +978,7 @@ html, body {
 .profile-rnr-title {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 20px;
-  color: var(--gold);
+  color: var(--accent);
   letter-spacing: 1px;
   margin-bottom: 6px;
 }
@@ -980,7 +986,7 @@ html, body {
 .profile-rnr-total {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 32px;
-  color: var(--gold);
+  color: var(--accent-warm);
   letter-spacing: 1px;
   margin-bottom: 2px;
 }
@@ -1019,7 +1025,7 @@ html, body {
 .profile-rnr-item-pts {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 16px;
-  color: var(--gold);
+  color: var(--accent);
   min-width: 40px;
   text-align: right;
 }
@@ -1079,7 +1085,7 @@ html, body {
 .manage-team-heading {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 18px;
-  color: var(--gold);
+  color: var(--accent);
   padding: 18px 0 6px;
   border-bottom: 1px solid var(--bg2);
   margin-bottom: 8px;
@@ -1136,8 +1142,8 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
 
 .manage-move-btn {
   background: none;
-  border: 2px solid var(--gold);
-  color: var(--gold);
+  border: 2px solid var(--accent);
+  color: var(--accent);
   font-family: 'Barlow', sans-serif;
   font-size: 12px;
   font-weight: 600;
@@ -1164,7 +1170,7 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
   color: var(--text);
 }
 .manage-move-picker button {
-  background: var(--gold);
+  background: var(--accent);
   color: #fff;
   border: none;
   font-family: 'Barlow', sans-serif;
@@ -1204,11 +1210,11 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
   outline: none;
 }
 
-.manage-create-row input:focus { border-color: var(--gold); }
+.manage-create-row input:focus { border-color: var(--accent); }
 
 .manage-create-row button {
   padding: 10px 18px;
-  background: var(--gold);
+  background: var(--accent);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -1280,11 +1286,11 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
   outline: none;
 }
 
-.manage-kpi-add input:focus { border-color: var(--gold); }
+.manage-kpi-add input:focus { border-color: var(--accent); }
 
 .manage-kpi-add button {
   padding: 5px 12px;
-  background: var(--gold);
+  background: var(--accent);
   color: #fff;
   border: none;
   border-radius: 6px;
@@ -1322,7 +1328,7 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
 .allteams-card-name {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 20px;
-  color: var(--gold);
+  color: var(--accent);
   letter-spacing: 1px;
 }
 
@@ -1344,6 +1350,137 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
   border-radius: 20px;
   font-size: 13px;
   margin: 2px 4px 2px 0;
+}
+
+/* ── Box shadows on cards ───────────────────────────────── */
+
+.home-tile, .hub-tile, .log-card, .rnr-row, .cat-item,
+.activity-item, .profile-stat-card, .dash-team-card,
+.allteams-card, .manage-member-row, .team-btn, .profile-rnr-item {
+  box-shadow: var(--shadow);
+}
+
+.home-tile:active, .hub-tile:active, .team-btn:active {
+  transform: scale(0.97);
+  box-shadow: var(--shadow-hover);
+}
+
+/* ── Keyframes ──────────────────────────────────────────── */
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Entrance animations — grids & lists ────────────────── */
+
+.home-tile, .hub-tile {
+  animation: fadeUp 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.home-tile:nth-child(1), .hub-tile:nth-child(1) { animation-delay: 0ms; }
+.home-tile:nth-child(2), .hub-tile:nth-child(2) { animation-delay: 40ms; }
+.home-tile:nth-child(3), .hub-tile:nth-child(3) { animation-delay: 80ms; }
+.home-tile:nth-child(4), .hub-tile:nth-child(4) { animation-delay: 120ms; }
+.home-tile:nth-child(5), .hub-tile:nth-child(5) { animation-delay: 160ms; }
+.home-tile:nth-child(6), .hub-tile:nth-child(6) { animation-delay: 200ms; }
+
+.log-card {
+  animation: fadeUp 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.log-card:nth-child(1)  { animation-delay: 0ms; }
+.log-card:nth-child(2)  { animation-delay: 30ms; }
+.log-card:nth-child(3)  { animation-delay: 60ms; }
+.log-card:nth-child(4)  { animation-delay: 90ms; }
+.log-card:nth-child(5)  { animation-delay: 120ms; }
+.log-card:nth-child(6)  { animation-delay: 150ms; }
+.log-card:nth-child(7)  { animation-delay: 180ms; }
+.log-card:nth-child(8)  { animation-delay: 210ms; }
+
+.rnr-row {
+  animation: fadeUp 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.rnr-row:nth-child(1)  { animation-delay: 0ms; }
+.rnr-row:nth-child(2)  { animation-delay: 30ms; }
+.rnr-row:nth-child(3)  { animation-delay: 60ms; }
+.rnr-row:nth-child(4)  { animation-delay: 90ms; }
+.rnr-row:nth-child(5)  { animation-delay: 120ms; }
+.rnr-row:nth-child(6)  { animation-delay: 150ms; }
+.rnr-row:nth-child(7)  { animation-delay: 180ms; }
+.rnr-row:nth-child(8)  { animation-delay: 210ms; }
+
+.profile-stat-card {
+  animation: fadeUp 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.profile-stat-card:nth-child(1) { animation-delay: 0ms; }
+.profile-stat-card:nth-child(2) { animation-delay: 50ms; }
+.profile-stat-card:nth-child(3) { animation-delay: 100ms; }
+
+/* ── Entrance — headers ─────────────────────────────────── */
+
+.screen.active .header {
+  animation: fadeIn 0.3s ease both;
+}
+
+/* ── Login screen atmosphere ────────────────────────────── */
+
+#login-screen {
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 10%, rgba(3,126,243,0.08) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 80% 90%, rgba(245,158,11,0.05) 0%, transparent 70%),
+    var(--bg);
+}
+
+.login-title {
+  font-size: clamp(56px, 14vw, 80px);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 50%, var(--accent-warm) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.login-btn {
+  box-shadow: 0 4px 16px rgba(3,126,243,0.30);
+}
+
+.login-btn:active {
+  box-shadow: 0 2px 8px rgba(3,126,243,0.20);
+}
+
+.login-input:focus, .login-password:focus {
+  box-shadow: 0 0 0 3px rgba(3,126,243,0.12);
+}
+
+/* ── Login cascade animation ────────────────────────────── */
+
+.login-title {
+  animation: fadeUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 0ms;
+}
+
+.login-subtitle {
+  animation: fadeUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 100ms;
+}
+
+.login-input {
+  animation: fadeUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 200ms;
+}
+
+.login-btn {
+  animation: fadeUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 300ms;
+}
+
+/* ── Bouncy toast ───────────────────────────────────────── */
+
+.log-toast {
+  transition: opacity 0.3s, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 </style>

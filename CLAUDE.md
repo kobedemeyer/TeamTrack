@@ -114,7 +114,7 @@ currentUser, currentTeamId, currentTeamName
 
 ## Conventions
 
-- **CSS variables:** `--bg`, `--bg2`, `--bg3`, `--gold`, `--gold-dim`, `--text`, `--text-dim`, `--red`, `--green`, `--radius`
+- **CSS variables:** `--bg`, `--bg2`, `--bg3`, `--accent`, `--accent-light`, `--accent-dim`, `--accent-warm`, `--accent-warm-light`, `--text`, `--text-dim`, `--red`, `--green`, `--radius`, `--shadow`, `--shadow-hover`
 - **Fonts:** Bebas Neue (display/headings), Barlow (body)
 - **Color scheme:** Light theme — white bg (#ffffff), blue accent (#037ef3)
 - **Constants:** UPPERCASE (`RNR_TASKS`, `SCREENS`, `API_URL`, `API_CACHE_TTL`)
