@@ -1415,7 +1415,12 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
     <div class="home-tile" onclick="goTo('hacklog')">
       <div class="home-tile-icon">&#10133;</div>
       <div class="home-tile-label">Log Action</div>
-      <div class="home-tile-desc">Track a KPI</div>
+      <div class="home-tile-desc">Track progress</div>
+    </div>
+    <div class="home-tile" onclick="goTo('hackboard')">
+      <div class="home-tile-icon">&#127942;</div>
+      <div class="home-tile-label">Leaderboard</div>
+      <div class="home-tile-desc">Rankings</div>
     </div>
   </div>
 </div>
@@ -1430,7 +1435,21 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
     <button class="refresh-btn" id="hack-log-refresh" onclick="invalidateApiCache();delete screenLastLoaded['hacklog'];loadHackathonLog()">&#8635;</button>
   </div>
   <div id="hack-log-wrapper">
-    <div class="log-empty">No categories yet</div>
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     HACKATHON LEADERBOARD SCREEN
+     ══════════════════════════════════════════════════════════════ -->
+<div id="hackboard-screen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goTo('hackathon')">&#9664; Back</button>
+    <h1>Leaderboard</h1>
+    <button class="refresh-btn" id="hackboard-refresh" onclick="invalidateApiCache();delete screenLastLoaded['hackboard'];loadHackLeaderboard()">&#8635;</button>
+  </div>
+  <div id="hackboard-content">
+    <div class="loading-center"><div class="spinner"></div></div>
   </div>
 </div>
 
@@ -1639,6 +1658,7 @@ const SCREENS = {
   hub:        'hub-screen',
   hackathon:  'hackathon-screen',
   hacklog:    'hacklog-screen',
+  hackboard:  'hackboard-screen',
   home:       'home-screen',
   dashboard:  'dash-screen',
   log:        'log-screen',
@@ -1889,6 +1909,9 @@ function goTo(screen) {
       break;
     case 'hacklog':
       if (!screenIsFresh('hacklog')) loadHackathonLog();
+      break;
+    case 'hackboard':
+      if (!screenIsFresh('hackboard')) loadHackLeaderboard();
       break;
     case 'home':
       document.getElementById('home-greeting').textContent = 'Hello, ' + currentUser;
@@ -2376,7 +2399,25 @@ function loadLogCards() {
   });
 }
 
-// ── Hackathon Log (no RnR tasks) ─────────────────────────────
+// ── Hackathon ────────────────────────────────────────────────
+
+const HACK_TASKS = [
+  { track: 'oGX', name: 'Plan a First Contact Meeting FCM',   points: 5 },
+  { track: 'oGX', name: 'Make appointment schedule for 2 next weeks', points: 3 },
+  { track: 'oGX', name: 'Send follow up emails to the EPs',   points: 3 },
+  { track: 'oGX', name: 'Call an EP to convince them to apply', points: 7 },
+  { track: 'oGX', name: 'Role play EP consultation from member of other LC', points: 5 },
+  { track: 'oGX', name: 'Send projects to an EP',             points: 5 },
+  { track: 'oGX', name: 'Have an applicant from your EP',     points: 15 },
+  { track: 'oGX', name: 'Plan an IR Call',                    points: 5 },
+  { track: 'oGX', name: 'Prepare posters to promote SDGs with IR partner opportunities', points: 7 }
+];
+
+function getMyHackTasks() {
+  return HACK_TASKS.filter(function(t) {
+    return t.track.toLowerCase() === currentTeamName.toLowerCase();
+  });
+}
 
 function loadHackathonLog() {
   var btn = document.getElementById('hack-log-refresh');
@@ -2384,6 +2425,14 @@ function loadHackathonLog() {
   var el = document.getElementById('hack-log-wrapper');
   el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
   btn.classList.add('spinning');
+
+  var myTasks = getMyHackTasks();
+  if (!myTasks.length) {
+    btn.classList.remove('spinning');
+    screenLastLoaded['hacklog'] = Date.now();
+    el.innerHTML = '<div class="log-empty">No hackathon tasks for your team yet</div>';
+    return;
+  }
 
   apiCached('getSummary', { teamId: currentTeamId }).then(function(data) {
     btn.classList.remove('spinning');
@@ -2393,30 +2442,31 @@ function loadHackathonLog() {
       return;
     }
     var cats = data.categories;
+    var catByName = {};
+    cats.forEach(function(c) { catByName[c.name.toLowerCase()] = c; });
 
-    // Build RnR lookups to exclude them
-    var rnrNames = {};
-    RNR_TASKS.forEach(function(t) { rnrNames[t.name.toLowerCase()] = true; });
-    var sourceKpiNames = {};
-    RNR_SOURCE_KPIS.forEach(function(s) { sourceKpiNames[s.name.toLowerCase()] = true; });
-
-    // Keep only non-RnR categories
-    var filtered = cats.filter(function(c) {
-      var key = c.name.toLowerCase();
-      return !rnrNames[key] && !sourceKpiNames[key];
-    });
-
-    if (!filtered.length) {
-      el.innerHTML = '<div class="log-empty">No categories yet</div>';
+    // Auto-create missing hackathon categories
+    var missing = myTasks.filter(function(t) { return !catByName[t.name.toLowerCase()]; });
+    if (missing.length) {
+      var created = 0;
+      missing.forEach(function(t) {
+        api('addCategory', { name: t.name, person: currentUser, teamId: currentTeamId }).then(function() {
+          created++;
+          if (created >= missing.length) { invalidateApiCache(); screenLastLoaded = {}; loadHackathonLog(); }
+        });
+      });
       return;
     }
 
     var myTotals = (data.totals && data.totals[currentUser]) || {};
     var html = '<div class="log-cards">';
-    filtered.forEach(function(c) {
+    myTasks.forEach(function(t) {
+      var c = catByName[t.name.toLowerCase()];
+      if (!c) return;
       var count = myTotals[c.id] || 0;
       html += '<div class="log-card" data-cat-id="' + esc(c.id) + '" data-cat-name="' + esc(c.name) + '">' +
         '<div class="log-card-name">' + esc(c.name) + '</div>' +
+        '<div class="rnr-points">+' + t.points + ' pts</div>' +
         '<div class="log-card-btns">' +
         '<button class="log-card-minus">\u2212</button>' +
         '<button class="log-card-plus">+</button>' +
@@ -2459,6 +2509,70 @@ function loadHackathonLog() {
         });
       });
     });
+  });
+}
+
+function loadHackLeaderboard() {
+  var btn = document.getElementById('hackboard-refresh');
+  if (btn.classList.contains('spinning')) return;
+  var el = document.getElementById('hackboard-content');
+  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  btn.classList.add('spinning');
+
+  fetchAllTeamsSummaries().then(function(validResults) {
+    btn.classList.remove('spinning');
+    screenLastLoaded['hackboard'] = Date.now();
+    if (!validResults.length) {
+      el.innerHTML = '<div class="log-empty">Could not load data</div>';
+      return;
+    }
+
+    var scoreMap = {};
+    validResults.forEach(function(r) {
+      var teamName = r.team.name;
+      var cats = r.summary.categories;
+      var allTotals = r.summary.totals || {};
+
+      var catByName = {};
+      cats.forEach(function(c) { catByName[c.name.toLowerCase()] = c; });
+
+      var teamTasks = HACK_TASKS.filter(function(t) {
+        return t.track.toLowerCase() === teamName.toLowerCase();
+      });
+
+      Object.keys(allTotals).forEach(function(person) {
+        var personTotals = allTotals[person];
+        var score = 0;
+        teamTasks.forEach(function(t) {
+          var cat = catByName[t.name.toLowerCase()];
+          if (cat) score += (personTotals[cat.id] || 0) * t.points;
+        });
+        if (score > 0) scoreMap[person] = (scoreMap[person] || 0) + score;
+      });
+    });
+
+    var scores = Object.keys(scoreMap).map(function(name) {
+      return { name: name, score: scoreMap[name] };
+    });
+    scores.sort(function(a, b) { return b.score - a.score; });
+
+    var html = '<div class="rnr-track-heading">Hackathon Leaderboard</div>';
+    if (!scores.length) {
+      html += '<div class="log-empty">No scores yet</div>';
+    } else {
+      scores.forEach(function(entry, i) {
+        var rank = i + 1;
+        var medal = rank === 1 ? '\uD83E\uDD47' : rank === 2 ? '\uD83E\uDD48' : rank === 3 ? '\uD83E\uDD49' : '';
+        var isMe = entry.name === currentUser;
+        html += '<div class="rnr-row' + (isMe ? ' rnr-row-me' : '') + '">' +
+          '<span class="rnr-rank">' + (medal || rank) + '</span>' +
+          '<span class="rnr-name">' + esc(entry.name) + '</span>' +
+          '<span class="rnr-pts">' + entry.score + ' pts</span>' +
+          '</div>';
+      });
+    }
+
+    el.innerHTML = html;
   });
 }
 
