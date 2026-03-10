@@ -1410,8 +1410,11 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
   <div class="header">
     <button class="back-btn" onclick="goTo('hub')">&#9664; Back</button>
     <h1>Hackathon</h1>
+    <button class="refresh-btn" id="hack-log-refresh" onclick="invalidateApiCache();delete screenLastLoaded['hackathon'];loadHackathonLog()">&#8635;</button>
   </div>
-  <div class="hackathon-coming">Coming soon</div>
+  <div id="hack-log-wrapper">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════
@@ -1865,6 +1868,7 @@ function goTo(screen) {
       document.getElementById('hub-team-badge').textContent = currentTeamName;
       break;
     case 'hackathon':
+      if (!screenIsFresh('hackathon')) loadHackathonLog();
       break;
     case 'home':
       document.getElementById('home-greeting').textContent = 'Hello, ' + currentUser;
@@ -2336,6 +2340,92 @@ function loadLogCards() {
         var diff = newVal - cur;
         if (diff === 0) return;
         // Optimistic UI
+        countEl.textContent = 'You: ' + newVal;
+        showToast((diff > 0 ? '+' : '') + diff + ' ' + card.dataset.catName);
+        api('addLog', { person: currentUser, categoryId: card.dataset.catId, count: diff }).then(function(res) {
+          if (!res.ok) {
+            showToast('Error: ' + (res.error || 'unknown'));
+            countEl.textContent = 'You: ' + cur;
+          } else {
+            invalidateApiCache();
+            screenLastLoaded = {};
+          }
+        });
+      });
+    });
+  });
+}
+
+// ── Hackathon Log (no RnR tasks) ─────────────────────────────
+
+function loadHackathonLog() {
+  var btn = document.getElementById('hack-log-refresh');
+  if (btn.classList.contains('spinning')) return;
+  var el = document.getElementById('hack-log-wrapper');
+  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  btn.classList.add('spinning');
+
+  apiCached('getSummary', { teamId: currentTeamId }).then(function(data) {
+    btn.classList.remove('spinning');
+    screenLastLoaded['hackathon'] = Date.now();
+    if (data.error || !data.categories) {
+      el.innerHTML = '<div class="log-empty">Could not load categories</div>';
+      return;
+    }
+    var cats = data.categories;
+
+    // Build RnR lookups to exclude them
+    var rnrNames = {};
+    RNR_TASKS.forEach(function(t) { rnrNames[t.name.toLowerCase()] = true; });
+    var sourceKpiNames = {};
+    RNR_SOURCE_KPIS.forEach(function(s) { sourceKpiNames[s.name.toLowerCase()] = true; });
+
+    // Keep only non-RnR categories
+    var filtered = cats.filter(function(c) {
+      var key = c.name.toLowerCase();
+      return !rnrNames[key] && !sourceKpiNames[key];
+    });
+
+    if (!filtered.length) {
+      el.innerHTML = '<div class="log-empty">No categories yet</div>';
+      return;
+    }
+
+    var myTotals = (data.totals && data.totals[currentUser]) || {};
+    var html = '<div class="log-cards">';
+    filtered.forEach(function(c) {
+      var count = myTotals[c.id] || 0;
+      html += '<div class="log-card" data-cat-id="' + esc(c.id) + '" data-cat-name="' + esc(c.name) + '">' +
+        '<div class="log-card-name">' + esc(c.name) + '</div>' +
+        '<div class="log-card-btns">' +
+        '<button class="log-card-minus">\u2212</button>' +
+        '<button class="log-card-plus">+</button>' +
+        '</div>' +
+        '<div class="log-card-count">You: ' + count + '</div>' +
+        '</div>';
+    });
+    html += '</div>';
+    el.innerHTML = html;
+
+    el.querySelectorAll('.log-card').forEach(function(card) {
+      card.querySelector('.log-card-plus').addEventListener('click', function(e) {
+        e.stopPropagation();
+        logAction(card.dataset.catId, card.dataset.catName);
+      });
+      card.querySelector('.log-card-minus').addEventListener('click', function(e) {
+        e.stopPropagation();
+        logSubtract(card.dataset.catId, card.dataset.catName);
+      });
+      card.querySelector('.log-card-count').addEventListener('click', function(e) {
+        e.stopPropagation();
+        var countEl = this;
+        var cur = parseInt(countEl.textContent.replace('You: ', ''), 10) || 0;
+        var input = prompt('Set count:', cur);
+        if (input === null) return;
+        var newVal = parseInt(input, 10);
+        if (isNaN(newVal) || newVal < 0) { showToast('Invalid number'); return; }
+        var diff = newVal - cur;
+        if (diff === 0) return;
         countEl.textContent = 'You: ' + newVal;
         showToast((diff > 0 ? '+' : '') + diff + ' ' + card.dataset.catName);
         api('addLog', { person: currentUser, categoryId: card.dataset.catId, count: diff }).then(function(res) {
