@@ -2052,9 +2052,12 @@ function filterTeamKpis(categories, teamName) {
   RNR_TASKS.forEach(function(t) { rnrNames[t.name.toLowerCase()] = t; });
   var sourceKpiNames = {};
   RNR_SOURCE_KPIS.forEach(function(s) { sourceKpiNames[s.name.toLowerCase()] = s; });
+  var hackNames = {};
+  HACK_TASKS.forEach(function(t) { hackNames[t.name.toLowerCase()] = true; });
 
   var kpiCats = [];
   categories.forEach(function(c) {
+    if (hackNames[c.name.toLowerCase()]) return;
     var task = rnrNames[c.name.toLowerCase()];
     var isSource = sourceKpiNames[c.name.toLowerCase()];
     if (isSource) {
@@ -2260,6 +2263,8 @@ function loadLogCards() {
     RNR_TASKS.forEach(function(t) { rnrNames[t.name.toLowerCase()] = t; });
     var sourceKpiNames = {};
     RNR_SOURCE_KPIS.forEach(function(s) { sourceKpiNames[s.name.toLowerCase()] = s; });
+    var hackNames = {};
+    HACK_TASKS.forEach(function(t) { hackNames[t.name.toLowerCase()] = true; });
     var catByName = {};
     cats.forEach(function(c) { catByName[c.name.toLowerCase()] = c; });
 
@@ -2296,7 +2301,9 @@ function loadLogCards() {
     cats.forEach(function(c) {
       var task = rnrNames[c.name.toLowerCase()];
       var isSource = sourceKpiNames[c.name.toLowerCase()];
-      if (isSource) {
+      if (hackNames[c.name.toLowerCase()]) {
+        // Hackathon task — skip in normal tracker
+      } else if (isSource) {
         // sourceKpi — show under Team KPIs if it's for this team's track
         if (isSource.track.toLowerCase() === currentTeamName.toLowerCase()) {
           kpiCats.push(c);
