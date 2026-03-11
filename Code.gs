@@ -193,11 +193,11 @@ function getSummary(teamId) {
   var catIds = {};
   cats.forEach(function(c) { catIds[c.id] = true; });
 
-  // Filter members by team if teamId provided
+  // Filter members by team — only include members assigned to this team
   var members = membersSheet;
   if (teamId) {
     members = members.filter(function(m) {
-      return m[2] === teamId || !m[2];
+      return m[2] === teamId;
     });
   }
 
@@ -212,15 +212,23 @@ function getSummary(teamId) {
     totals[person][catId] = (totals[person][catId] || 0) + cnt;
   });
 
-  // Ensure all registered members appear
+  // Build set of team member names
+  var memberNames = {};
   members.forEach(function(m) {
+    memberNames[m[0]] = true;
     if (!totals[m[0]]) totals[m[0]] = {};
+  });
+
+  // Filter totals to team members only (exclude people from other teams)
+  var filteredTotals = {};
+  Object.keys(totals).forEach(function(person) {
+    if (memberNames[person]) filteredTotals[person] = totals[person];
   });
 
   return {
     categories: cats,
-    members: Object.keys(totals).sort(),
-    totals: totals
+    members: Object.keys(filteredTotals).sort(),
+    totals: filteredTotals
   };
 }
 
@@ -575,17 +583,28 @@ function getAllSummaries() {
       totals[person][catId] = (totals[person][catId] || 0) + cnt;
     });
 
-    // Ensure all team members appear
-    (membersByTeam[teamId] || []).forEach(function(name) {
+    // Only include actual team members
+    var teamMembers = membersByTeam[teamId] || [];
+    var memberSet = {};
+    teamMembers.forEach(function(name) { memberSet[name] = true; });
+
+    // Ensure all team members appear in totals
+    teamMembers.forEach(function(name) {
       if (!totals[name]) totals[name] = {};
+    });
+
+    // Filter totals to team members only
+    var filteredTotals = {};
+    teamMembers.forEach(function(name) {
+      if (totals[name]) filteredTotals[name] = totals[name];
     });
 
     return {
       id: teamId,
       name: teamName,
       categories: teamCats,
-      members: Object.keys(totals).sort(),
-      totals: totals
+      members: teamMembers.sort(),
+      totals: filteredTotals
     };
   });
 }
