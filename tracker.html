@@ -691,7 +691,9 @@ html, body {
   text-align: center;
 }
 
-.rnr-row:nth-child(-n+3) .rnr-rank { color: var(--accent-warm); }
+.rnr-row[data-rank="1"] .rnr-rank { color: var(--accent-warm); }
+.rnr-row[data-rank="2"] .rnr-rank { color: #9ca3af; }
+.rnr-row[data-rank="3"] .rnr-rank { color: #b4824e; }
 
 .rnr-name {
   flex: 1;
@@ -1506,17 +1508,17 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
 
 /* ── RnR podium — top 3 ────────────────────────────────── */
 
-.rnr-row:nth-child(1) {
+.rnr-row[data-rank="1"] {
   background: linear-gradient(135deg, rgba(245,158,11,0.10) 0%, var(--bg2) 60%);
   border-color: var(--accent-warm-light);
 }
 
-.rnr-row:nth-child(2) {
+.rnr-row[data-rank="2"] {
   background: linear-gradient(135deg, rgba(156,163,175,0.12) 0%, var(--bg2) 60%);
   border-color: #c0c5cc;
 }
 
-.rnr-row:nth-child(3) {
+.rnr-row[data-rank="3"] {
   background: linear-gradient(135deg, rgba(180,130,80,0.10) 0%, var(--bg2) 60%);
   border-color: #c9a97a;
 }
@@ -2828,7 +2830,7 @@ function loadHackLeaderboard() {
         var rank = i + 1;
         var medal = rank === 1 ? '\uD83E\uDD47' : rank === 2 ? '\uD83E\uDD48' : rank === 3 ? '\uD83E\uDD49' : '';
         var isMe = entry.name === currentUser;
-        html += '<div class="rnr-row' + (isMe ? ' rnr-row-me' : '') + '">' +
+        html += '<div class="rnr-row' + (isMe ? ' rnr-row-me' : '') + '"' + (rank <= 3 ? ' data-rank="' + rank + '"' : '') + '>' +
           '<span class="rnr-rank">' + (medal || rank) + '</span>' +
           '<span class="rnr-name">' + esc(entry.name) + '</span>' +
           '<span class="rnr-pts">' + entry.score + ' pts</span>' +
@@ -2963,7 +2965,7 @@ function loadRnR() {
           var rank = i + 1;
           var medal = rank === 1 ? '\uD83E\uDD47' : rank === 2 ? '\uD83E\uDD48' : rank === 3 ? '\uD83E\uDD49' : '';
           var isMe = entry.name === currentUser;
-          html += '<div class="rnr-row' + (isMe ? ' rnr-row-me' : '') + '">' +
+          html += '<div class="rnr-row' + (isMe ? ' rnr-row-me' : '') + '"' + (rank <= 3 ? ' data-rank="' + rank + '"' : '') + '>' +
             '<span class="rnr-rank">' + (medal || rank) + '</span>' +
             '<span class="rnr-name">' + esc(entry.name) + '</span>' +
             '<span class="rnr-pts">' + entry.score + ' pts</span>' +
