@@ -2259,7 +2259,7 @@ function loadDashboard() {
   }
 }
 
-function filterTeamKpis(categories, teamName) {
+function filterTeamKpis(categories, teamName, includeAll) {
   var rnrNames = {};
   RNR_TASKS.forEach(function(t) { rnrNames[t.name.toLowerCase()] = t; });
   var sourceKpiNames = {};
@@ -2273,15 +2273,18 @@ function filterTeamKpis(categories, teamName) {
     var task = rnrNames[c.name.toLowerCase()];
     var isSource = sourceKpiNames[c.name.toLowerCase()];
     if (isSource) {
-      if (isSource.track.toLowerCase() === teamName.toLowerCase()) kpiCats.push(c);
+      if (includeAll || isSource.track.toLowerCase() === teamName.toLowerCase()) kpiCats.push(c);
     } else if (!task) {
       kpiCats.push(c);
     } else if (task.threshold) {
-      // hidden — derived from sourceKpis
+      // hidden — derived from sourceKpis (but show for super-admin)
+      if (includeAll) kpiCats.push(c);
+    } else if (includeAll) {
+      kpiCats.push(c);
     } else if (task.track !== 'General' && task.track.toLowerCase() === teamName.toLowerCase()) {
       kpiCats.push(c);
     }
-    // General RnR tasks excluded from dashboard (live in RnR tab)
+    // General RnR tasks excluded from dashboard (live in RnR tab) unless includeAll
   });
   return kpiCats;
 }
@@ -2364,7 +2367,7 @@ function renderDashboard() {
         var team = entry.team;
         var data = entry.summary;
         if (!data.categories || !data.members || !data.members.length) return;
-        var kpiCats = filterTeamKpis(data.categories, team.name);
+        var kpiCats = filterTeamKpis(data.categories, team.name, true);
         if (!kpiCats.length) return;
         html += '<div class="dash-team-card">';
         html += buildIndividualTable(data, kpiCats, esc(team.name));
