@@ -1483,6 +1483,91 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
   transition: opacity 0.3s, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* ── Custom scrollbars ──────────────────────────────────── */
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--accent-dim); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-light); }
+
+* { scrollbar-width: thin; scrollbar-color: var(--accent-dim) transparent; }
+
+/* ── RnR podium — top 3 ────────────────────────────────── */
+
+.rnr-row:nth-child(1) {
+  background: linear-gradient(135deg, rgba(245,158,11,0.10) 0%, var(--bg2) 60%);
+  border-color: var(--accent-warm-light);
+}
+
+.rnr-row:nth-child(2) {
+  background: linear-gradient(135deg, rgba(156,163,175,0.12) 0%, var(--bg2) 60%);
+  border-color: #c0c5cc;
+}
+
+.rnr-row:nth-child(3) {
+  background: linear-gradient(135deg, rgba(180,130,80,0.10) 0%, var(--bg2) 60%);
+  border-color: #c9a97a;
+}
+
+/* ── Empty states ───────────────────────────────────────── */
+
+.dash-empty, .log-empty, .cat-empty, .activity-empty, .manage-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.6;
+}
+
+.dash-empty::before, .log-empty::before, .cat-empty::before,
+.activity-empty::before, .manage-empty::before {
+  font-size: 40px;
+  line-height: 1;
+}
+
+.dash-empty::before { content: '\1F4CA'; }
+.log-empty::before { content: '\1F4DD'; }
+.cat-empty::before { content: '\1F4C2'; }
+.activity-empty::before { content: '\1F4AD'; }
+.manage-empty::before { content: '\1F465'; }
+
+/* ── Screen slide transitions ───────────────────────────── */
+
+.screen {
+  transform: translateX(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.screen.slide-out-left {
+  opacity: 0;
+  transform: translateX(-40px);
+  pointer-events: none;
+}
+
+.screen.slide-out-right {
+  opacity: 0;
+  transform: translateX(40px);
+  pointer-events: none;
+}
+
+.screen.slide-in-left {
+  animation: slideFromLeft 0.3s ease both;
+}
+
+.screen.slide-in-right {
+  animation: slideFromRight 0.3s ease both;
+}
+
+@keyframes slideFromLeft {
+  from { opacity: 0; transform: translateX(-40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideFromRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
 </style>
 </head>
 <body>
@@ -2025,15 +2110,30 @@ function screenIsFresh(screen) {
   return last && (Date.now() - last < API_CACHE_TTL);
 }
 
+// Navigation depth for slide direction
+var NAV_DEPTH = {
+  login: 0, teamselect: 1, hub: 2,
+  home: 3, hackathon: 3,
+  dashboard: 4, log: 4, categories: 4, activity: 4, rnr: 4, profile: 4, allteams: 4,
+  hacklog: 4, hackboard: 4,
+  manageteam: 5
+};
+
 function goTo(screen) {
   var prevEl = document.getElementById(SCREENS[currentScreen]);
   var nextEl = document.getElementById(SCREENS[screen]);
   if (!nextEl) return;
 
+  var goingForward = (NAV_DEPTH[screen] || 0) >= (NAV_DEPTH[currentScreen] || 0);
+
   if (prevEl) {
-    prevEl.classList.remove('active');
+    prevEl.classList.remove('active', 'slide-in-left', 'slide-in-right');
+    prevEl.classList.add(goingForward ? 'slide-out-left' : 'slide-out-right');
+    var prev = prevEl;
+    setTimeout(function() { prev.classList.remove('slide-out-left', 'slide-out-right'); }, 300);
   }
-  nextEl.classList.add('active');
+  nextEl.classList.remove('slide-out-left', 'slide-out-right');
+  nextEl.classList.add('active', goingForward ? 'slide-in-right' : 'slide-in-left');
   currentScreen = screen;
 
   // Load data for the screen (skip if recently loaded)
