@@ -97,6 +97,23 @@ html, body {
 
 .back-btn:active { opacity: 0.6; }
 
+.header-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  color: var(--bg);
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: var(--shadow);
+}
+
+.header-avatar:active { transform: scale(0.92); }
+
 /* ── Login screen ────────────────────────────────────────── */
 
 #login-screen {
@@ -1585,6 +1602,7 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
 <div id="hub-screen" class="screen">
   <div class="header">
     <h1>TeamTrack</h1>
+    <div class="header-avatar" id="hub-avatar" onclick="goTo('profile')"></div>
   </div>
   <div class="hub-greeting" id="hub-greeting"></div>
   <div class="hub-team-badge" id="hub-team-badge"></div>
@@ -1660,11 +1678,10 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
   <div class="header">
     <button class="back-btn" onclick="goTo('hub')">&#9664; Back</button>
     <h1>TeamTrack</h1>
+    <div class="header-avatar" id="home-avatar" onclick="goTo('profile')"></div>
   </div>
-  <div class="profile-header-area" onclick="goTo('profile')">
-    <div class="home-greeting" id="home-greeting"></div>
-    <div class="home-team-badge" id="home-team-badge"></div>
-  </div>
+  <div class="home-greeting" id="home-greeting"></div>
+  <div class="home-team-badge" id="home-team-badge"></div>
   <div class="home-grid">
     <div class="home-tile" onclick="goTo('dashboard')">
       <div class="home-tile-icon">&#128202;</div>
@@ -2104,6 +2121,7 @@ function goTo(screen) {
     case 'hub':
       document.getElementById('hub-greeting').textContent = 'Hello, ' + currentUser;
       document.getElementById('hub-team-badge').textContent = currentTeamName;
+      setHeaderAvatar('hub-avatar');
       break;
     case 'hackathon':
       break;
@@ -2116,6 +2134,7 @@ function goTo(screen) {
     case 'home':
       document.getElementById('home-greeting').textContent = 'Hello, ' + currentUser;
       document.getElementById('home-team-badge').textContent = currentTeamName;
+      setHeaderAvatar('home-avatar');
       break;
     case 'teamselect':
       loadTeamSelect();
@@ -3214,6 +3233,13 @@ function getAvatarColor(name) {
   }
   var hue = Math.abs(hash) % 360;
   return 'hsl(' + hue + ', 55%, 50%)';
+}
+
+function setHeaderAvatar(elId) {
+  var el = document.getElementById(elId);
+  if (!el || !currentUser) return;
+  el.textContent = getInitials(currentUser);
+  el.style.background = getAvatarColor(currentUser);
 }
 
 // ── Profile ─────────────────────────────────────────────────
