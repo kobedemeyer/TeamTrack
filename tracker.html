@@ -1552,10 +1552,12 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
 
 .screen.slide-in-left {
   animation: slideFromLeft 0.3s ease both;
+  transition: none;
 }
 
 .screen.slide-in-right {
   animation: slideFromRight 0.3s ease both;
+  transition: none;
 }
 
 @keyframes slideFromLeft {
@@ -2133,7 +2135,10 @@ function goTo(screen) {
     setTimeout(function() { prev.classList.remove('slide-out-left', 'slide-out-right'); }, 300);
   }
   nextEl.classList.remove('slide-out-left', 'slide-out-right');
-  nextEl.classList.add('active', goingForward ? 'slide-in-right' : 'slide-in-left');
+  var slideClass = goingForward ? 'slide-in-right' : 'slide-in-left';
+  nextEl.classList.add('active', slideClass);
+  var next = nextEl;
+  setTimeout(function() { next.classList.remove('slide-in-left', 'slide-in-right'); }, 350);
   currentScreen = screen;
 
   // Load data for the screen (skip if recently loaded)
