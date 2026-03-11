@@ -459,7 +459,6 @@ html, body {
 .dash-table {
   border-collapse: collapse;
   width: 100%;
-  min-width: 320px;
 }
 
 .dash-table th, .dash-table td {
@@ -488,7 +487,10 @@ html, body {
   left: 0;
   background: var(--bg);
   z-index: 1;
-  width: 100%;
+  white-space: normal;
+  word-break: break-word;
+  min-width: 120px;
+  max-width: 55vw;
 }
 
 .dash-table th:last-child,
@@ -563,6 +565,12 @@ html, body {
   color: var(--accent);
   letter-spacing: 1px;
   margin-bottom: 8px;
+}
+
+.dash-team-card .dash-table th,
+.dash-team-card .dash-table th:first-child,
+.dash-team-card .dash-table td:first-child {
+  background: var(--bg2);
 }
 
 /* ── Log Action ──────────────────────────────────────────── */
