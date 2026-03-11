@@ -1531,44 +1531,6 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
 .activity-empty::before { content: '\1F4AD'; }
 .manage-empty::before { content: '\1F465'; }
 
-/* ── Screen slide transitions ───────────────────────────── */
-
-.screen {
-  transform: translateX(0);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.screen.slide-out-left {
-  opacity: 0;
-  transform: translateX(-40px);
-  pointer-events: none;
-}
-
-.screen.slide-out-right {
-  opacity: 0;
-  transform: translateX(40px);
-  pointer-events: none;
-}
-
-.screen.slide-in-left {
-  animation: slideFromLeft 0.3s ease both;
-  transition: none;
-}
-
-.screen.slide-in-right {
-  animation: slideFromRight 0.3s ease both;
-  transition: none;
-}
-
-@keyframes slideFromLeft {
-  from { opacity: 0; transform: translateX(-40px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes slideFromRight {
-  from { opacity: 0; transform: translateX(40px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
 
 </style>
 </head>
@@ -2112,33 +2074,15 @@ function screenIsFresh(screen) {
   return last && (Date.now() - last < API_CACHE_TTL);
 }
 
-// Navigation depth for slide direction
-var NAV_DEPTH = {
-  login: 0, teamselect: 1, hub: 2,
-  home: 3, hackathon: 3,
-  dashboard: 4, log: 4, categories: 4, activity: 4, rnr: 4, profile: 4, allteams: 4,
-  hacklog: 4, hackboard: 4,
-  manageteam: 5
-};
-
 function goTo(screen) {
   var prevEl = document.getElementById(SCREENS[currentScreen]);
   var nextEl = document.getElementById(SCREENS[screen]);
   if (!nextEl) return;
 
-  var goingForward = (NAV_DEPTH[screen] || 0) >= (NAV_DEPTH[currentScreen] || 0);
-
   if (prevEl) {
-    prevEl.classList.remove('active', 'slide-in-left', 'slide-in-right');
-    prevEl.classList.add(goingForward ? 'slide-out-left' : 'slide-out-right');
-    var prev = prevEl;
-    setTimeout(function() { prev.classList.remove('slide-out-left', 'slide-out-right'); }, 300);
+    prevEl.classList.remove('active');
   }
-  nextEl.classList.remove('slide-out-left', 'slide-out-right');
-  var slideClass = goingForward ? 'slide-in-right' : 'slide-in-left';
-  nextEl.classList.add('active', slideClass);
-  var next = nextEl;
-  setTimeout(function() { next.classList.remove('slide-in-left', 'slide-in-right'); }, 350);
+  nextEl.classList.add('active');
   currentScreen = screen;
 
   // Load data for the screen (skip if recently loaded)
