@@ -2232,16 +2232,30 @@ function loadDashboard() {
       renderDashboard();
     });
   } else {
-    apiCached('getSummary', { teamId: currentTeamId }).then(function(data) {
-      btn.classList.remove('spinning');
-      if (data.error || !data.categories) {
-        el.innerHTML = '<div class="dash-empty">Could not load data</div>';
-        return;
-      }
-      summaryCache = data;
-      screenLastLoaded['dashboard'] = Date.now();
-      renderDashboard();
-    });
+    var isSuperAdmin = currentUser && currentUser.toLowerCase() === 'kobe';
+    if (isSuperAdmin) {
+      fetchAllTeamsSummaries().then(function(results) {
+        btn.classList.remove('spinning');
+        if (!results.length) {
+          el.innerHTML = '<div class="dash-empty">Could not load teams</div>';
+          return;
+        }
+        allTeamsSummaryCache = results;
+        screenLastLoaded['dashboard'] = Date.now();
+        renderDashboard();
+      });
+    } else {
+      apiCached('getSummary', { teamId: currentTeamId }).then(function(data) {
+        btn.classList.remove('spinning');
+        if (data.error || !data.categories) {
+          el.innerHTML = '<div class="dash-empty">Could not load data</div>';
+          return;
+        }
+        summaryCache = data;
+        screenLastLoaded['dashboard'] = Date.now();
+        renderDashboard();
+      });
+    }
   }
 }
 
@@ -2305,19 +2319,10 @@ function renderDashboard() {
 
     el.innerHTML = html || '<div class="dash-empty">No KPI data across teams yet.</div>';
   } else {
-    // ── Individual mode (current team only, KPIs only) ──
-    var data = summaryCache;
-    if (!data) return;
-
-    if (!data.categories.length || !data.members.length) {
-      el.innerHTML = '<div class="dash-empty">No data yet. Log some actions first!</div>';
-      return;
-    }
-
-    var kpiCats = filterTeamKpis(data.categories, currentTeamName);
+    // ── Individual mode ──
     var isSuperAdmin = currentUser && currentUser.toLowerCase() === 'kobe';
 
-    function buildIndividualTable(cats, heading) {
+    function buildIndividualTable(data, cats, heading) {
       if (!cats.length) return '';
       var h = '<div class="rnr-track-heading">' + heading + '</div>';
       h += '<table class="dash-table"><thead><tr><th>Member</th>';
@@ -2352,7 +2357,31 @@ function renderDashboard() {
       return h;
     }
 
-    var html = buildIndividualTable(kpiCats, 'Team KPIs');
+    var html = '';
+    if (isSuperAdmin && allTeamsSummaryCache) {
+      // Super-admin: show all teams with editable individual breakdowns
+      allTeamsSummaryCache.forEach(function(entry) {
+        var team = entry.team;
+        var data = entry.summary;
+        if (!data.categories || !data.members || !data.members.length) return;
+        var kpiCats = filterTeamKpis(data.categories, team.name);
+        if (!kpiCats.length) return;
+        html += '<div class="dash-team-card">';
+        html += buildIndividualTable(data, kpiCats, esc(team.name));
+        html += '</div>';
+      });
+    } else {
+      // Normal user: current team only
+      var data = summaryCache;
+      if (!data) return;
+      if (!data.categories.length || !data.members.length) {
+        el.innerHTML = '<div class="dash-empty">No data yet. Log some actions first!</div>';
+        return;
+      }
+      var kpiCats = filterTeamKpis(data.categories, currentTeamName);
+      html = buildIndividualTable(data, kpiCats, 'Team KPIs');
+    }
+
     el.innerHTML = html || '<div class="dash-empty">No KPI data yet.</div>';
 
     if (isSuperAdmin) {
