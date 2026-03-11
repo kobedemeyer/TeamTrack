@@ -81,6 +81,7 @@ html, body {
   color: var(--accent);
   letter-spacing: 2px;
   flex: 1;
+  text-align: center;
 }
 
 .back-btn {
@@ -98,14 +99,14 @@ html, body {
 .back-btn:active { opacity: 0.6; }
 
 .header-avatar {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 14px;
+  font-size: 17px;
   color: var(--bg);
   cursor: pointer;
   flex-shrink: 0;
@@ -307,22 +308,6 @@ html, body {
 
 /* ── Home screen ─────────────────────────────────────────── */
 
-.home-greeting {
-  color: var(--text-dim);
-  font-size: 14px;
-  padding-bottom: 4px;
-}
-
-.home-team-badge {
-  display: inline-block;
-  background: var(--bg3);
-  color: var(--accent-light);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 12px;
-  border-radius: 20px;
-  margin-bottom: 8px;
-}
 
 .home-grid {
   display: grid;
@@ -1680,8 +1665,6 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
     <h1>TeamTrack</h1>
     <div class="header-avatar" id="home-avatar" onclick="goTo('profile')"></div>
   </div>
-  <div class="home-greeting" id="home-greeting"></div>
-  <div class="home-team-badge" id="home-team-badge"></div>
   <div class="home-grid">
     <div class="home-tile" onclick="goTo('dashboard')">
       <div class="home-tile-icon">&#128202;</div>
@@ -2132,8 +2115,6 @@ function goTo(screen) {
       if (!screenIsFresh('hackboard')) loadHackLeaderboard();
       break;
     case 'home':
-      document.getElementById('home-greeting').textContent = 'Hello, ' + currentUser;
-      document.getElementById('home-team-badge').textContent = currentTeamName;
       setHeaderAvatar('home-avatar');
       break;
     case 'teamselect':
