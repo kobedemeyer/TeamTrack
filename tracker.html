@@ -210,6 +210,95 @@ html, body {
 }
 .login-password:focus { border-color: var(--accent); }
 
+/* ── Entity Select screen ────────────────────────────────── */
+
+#entity-screen {
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(3,126,243,0.06) 0%, transparent 70%),
+    var(--bg);
+}
+
+.entity-heading {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(28px, 8vw, 44px);
+  color: var(--accent);
+  letter-spacing: 3px;
+  text-align: center;
+  animation: fadeUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.entity-sub {
+  color: var(--text-dim);
+  font-size: 14px;
+  text-align: center;
+  animation: fadeUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 60ms;
+}
+
+.entity-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: min(380px, 90vw);
+  max-height: 55vh;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.entity-card {
+  position: relative;
+  background: var(--bg2);
+  border: 2px solid var(--bg3);
+  border-radius: var(--radius);
+  padding: 22px 14px 18px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  animation: fadeUp 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.entity-card:nth-child(1) { animation-delay: 100ms; }
+.entity-card:nth-child(2) { animation-delay: 140ms; }
+.entity-card:nth-child(3) { animation-delay: 180ms; }
+.entity-card:nth-child(4) { animation-delay: 220ms; }
+.entity-card:nth-child(5) { animation-delay: 260ms; }
+.entity-card:nth-child(6) { animation-delay: 300ms; }
+.entity-card:nth-child(7) { animation-delay: 340ms; }
+.entity-card:nth-child(8) { animation-delay: 380ms; }
+
+.entity-card:active {
+  border-color: var(--accent);
+  transform: scale(0.96);
+  box-shadow: var(--shadow-hover);
+}
+
+.entity-card-flag {
+  font-size: 28px;
+  margin-bottom: 6px;
+  line-height: 1;
+}
+
+.entity-card-city {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  color: var(--accent);
+  letter-spacing: 1px;
+  line-height: 1.2;
+}
+
+.entity-card-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 4px;
+}
+
 /* ── Team Select screen ──────────────────────────────────── */
 
 #team-screen {
@@ -1700,6 +1789,15 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════
+     ENTITY SELECT SCREEN
+     ══════════════════════════════════════════════════════════════ -->
+<div id="entity-screen" class="screen">
+  <div class="entity-heading">Your Entity</div>
+  <div class="entity-sub">Which AIESEC LC are you from?</div>
+  <div class="entity-grid" id="entity-grid"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
      TEAM SELECT SCREEN
      ══════════════════════════════════════════════════════════════ -->
 <div id="team-screen" class="screen">
@@ -1996,8 +2094,18 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxfUmJX6zZFw7tgC6FD5ZTz
 let currentUser = localStorage.getItem('tt_user') || '';
 let currentTeamId = localStorage.getItem('tt_teamId') || '';
 let currentTeamName = localStorage.getItem('tt_teamName') || '';
+let currentEntity = localStorage.getItem('tt_entity') || '';
 let currentUserIsAdmin = localStorage.getItem('tt_isAdmin') === '1';
 let currentScreen = 'login';
+
+const ENTITIES = [
+  { city: 'Antwerpen',  flag: '\uD83C\uDDE7\uD83C\uDDEA' },
+  { city: 'Brussel',    flag: '\uD83C\uDDE7\uD83C\uDDEA' },
+  { city: 'Gent',       flag: '\uD83C\uDDE7\uD83C\uDDEA' },
+  { city: 'Leuven',     flag: '\uD83C\uDDE7\uD83C\uDDEA' },
+  { city: 'Li\u00e8ge',       flag: '\uD83C\uDDE7\uD83C\uDDEA' },
+  { city: 'Hasselt',    flag: '\uD83C\uDDE7\uD83C\uDDEA' }
+];
 let categoriesCache = [];
 let summaryCache = null;
 let allTeamsSummaryCache = null;
@@ -2008,6 +2116,7 @@ var isAdmin = new URLSearchParams(window.location.search).has('admin');
 // ── Screen mapping ──────────────────────────────────────────
 const SCREENS = {
   login:      'login-screen',
+  entity:     'entity-screen',
   teamselect: 'team-screen',
   hub:        'hub-screen',
   hackathon:  'hackathon-screen',
@@ -2054,7 +2163,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Auto-login if name and team are saved
   if (currentUser && currentTeamId) {
     goTo('hub');
-    // Re-check team and admin status in background
+    // Re-check team, admin, and entity status in background
     api('checkName', { name: currentUser }).then(function(res) {
       if (res.exists) {
         if (res.teamId && res.teamId !== currentTeamId) {
@@ -2062,6 +2171,10 @@ document.addEventListener('DOMContentLoaded', function() {
           currentTeamName = res.teamName;
           localStorage.setItem('tt_teamId', res.teamId);
           localStorage.setItem('tt_teamName', res.teamName);
+        }
+        if (res.entity) {
+          currentEntity = res.entity;
+          localStorage.setItem('tt_entity', res.entity);
         }
         currentUserIsAdmin = !!res.isAdmin;
         localStorage.setItem('tt_isAdmin', currentUserIsAdmin ? '1' : '');
@@ -2123,12 +2236,12 @@ function loginUser() {
       }
       finishLogin(name, res);
     } else {
-      // New user — register and go to team select
+      // New user — register and go to entity select
       currentUser = name;
       localStorage.setItem('tt_user', name);
       updateAdminStatus();
       api('registerMember', { name: name });
-      goTo('teamselect');
+      goTo('entity');
     }
   });
 }
@@ -2160,8 +2273,16 @@ function finishLogin(name, res) {
   localStorage.setItem('tt_user', res.name);
   currentUserIsAdmin = !!res.isAdmin;
   localStorage.setItem('tt_isAdmin', currentUserIsAdmin ? '1' : '');
+  if (res.entity) {
+    currentEntity = res.entity;
+    localStorage.setItem('tt_entity', res.entity);
+  }
   updateAdminStatus();
-  if (res.teamId) {
+
+  if (!res.entity && !currentEntity) {
+    // No entity selected yet — go to entity screen first
+    goTo('entity');
+  } else if (res.teamId) {
     currentTeamId = res.teamId;
     currentTeamName = res.teamName;
     localStorage.setItem('tt_teamId', res.teamId);
@@ -2176,10 +2297,12 @@ function logout() {
   currentUser = '';
   currentTeamId = '';
   currentTeamName = '';
+  currentEntity = '';
   currentUserIsAdmin = false;
   localStorage.removeItem('tt_user');
   localStorage.removeItem('tt_teamId');
   localStorage.removeItem('tt_teamName');
+  localStorage.removeItem('tt_entity');
   localStorage.removeItem('tt_isAdmin');
   document.getElementById('login-name').value = '';
   document.getElementById('login-password').style.display = 'none';
@@ -2244,6 +2367,28 @@ function createTeam() {
   });
 }
 
+// ── Entity Select ───────────────────────────────────────────
+
+function loadEntityGrid() {
+  var el = document.getElementById('entity-grid');
+  var html = '';
+  ENTITIES.forEach(function(e) {
+    html += '<div class="entity-card" onclick="selectEntity(\'' + esc(e.city) + '\')">' +
+      '<div class="entity-card-flag">' + e.flag + '</div>' +
+      '<div class="entity-card-city">' + esc(e.city) + '</div>' +
+      '<div class="entity-card-label">AIESEC</div>' +
+      '</div>';
+  });
+  el.innerHTML = html;
+}
+
+function selectEntity(city) {
+  currentEntity = city;
+  localStorage.setItem('tt_entity', city);
+  api('registerMember', { name: currentUser, entity: city });
+  goTo('teamselect');
+}
+
 // ── Navigation ──────────────────────────────────────────────
 
 function screenIsFresh(screen) {
@@ -2264,6 +2409,9 @@ function goTo(screen) {
 
   // Load data for the screen (skip if recently loaded)
   switch (screen) {
+    case 'entity':
+      loadEntityGrid();
+      break;
     case 'hub':
       document.getElementById('hub-greeting').textContent = 'Hello, ' + currentUser;
       document.getElementById('hub-team-badge').textContent = currentTeamName;

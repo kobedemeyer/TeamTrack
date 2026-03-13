@@ -27,7 +27,7 @@ function doGet(e) {
         result = addLog(e.parameter.person, e.parameter.categoryId, e.parameter.count);
         break;
       case 'registerMember':
-        result = registerMember(e.parameter.name, e.parameter.teamId);
+        result = registerMember(e.parameter.name, e.parameter.teamId, e.parameter.entity);
         break;
       case 'getTeams':
         result = getTeams();
@@ -273,7 +273,7 @@ function getSummary(teamId) {
 
 // ── Members ─────────────────────────────────────────────────
 
-function registerMember(name, teamId) {
+function registerMember(name, teamId, entity) {
   if (!name) return { error: 'Missing name' };
 
   const sheet = SS.getSheetByName('Members');
@@ -287,11 +287,15 @@ function registerMember(name, teamId) {
       if (teamId) {
         sheet.getRange(i + 1, 3).setValue(teamId);
       }
+      // Update entity if provided
+      if (entity) {
+        sheet.getRange(i + 1, 7).setValue(entity);
+      }
       return { ok: true, existing: true };
     }
   }
 
-  sheet.appendRow([trimmed, new Date().toISOString(), teamId || '']);
+  sheet.appendRow([trimmed, new Date().toISOString(), teamId || '', '', '', '', entity || '']);
   return { ok: true, existing: false };
 }
 
@@ -362,7 +366,7 @@ function getMembers(teamId) {
   var result = [];
   data.forEach(function(r) {
     if (r[2] === teamId) {
-      result.push({ name: r[0], joinedAt: r[1], teamId: r[2], isAdmin: r[4] === '1' || r[4] === 1 || r[0].toString().toLowerCase() === 'kobe' });
+      result.push({ name: r[0], joinedAt: r[1], teamId: r[2], isAdmin: r[4] === '1' || r[4] === 1 || r[0].toString().toLowerCase() === 'kobe', entity: (r[6] || '').toString() });
     }
   });
   return result;
@@ -391,7 +395,8 @@ function checkName(name) {
       }
       var hasPassword = !!(data[i][3]);
       var memberIsAdmin = data[i][4] === '1' || data[i][4] === 1 || data[i][0].toString().toLowerCase() === 'kobe';
-      return { exists: true, name: data[i][0], teamId: teamId, teamName: teamName, hasPassword: hasPassword, isAdmin: memberIsAdmin };
+      var entity = (data[i][6] || '').toString();
+      return { exists: true, name: data[i][0], teamId: teamId, teamName: teamName, hasPassword: hasPassword, isAdmin: memberIsAdmin, entity: entity };
     }
   }
   return { exists: false };
@@ -455,7 +460,8 @@ function getAllMembers() {
       joinedAt: r[1],
       teamId: tid,
       teamName: tid ? (teamNames[tid] || 'Unknown team') : 'No team',
-      isAdmin: r[4] === '1' || r[4] === 1 || r[0].toString().toLowerCase() === 'kobe'
+      isAdmin: r[4] === '1' || r[4] === 1 || r[0].toString().toLowerCase() === 'kobe',
+      entity: (r[6] || '').toString()
     };
   });
 }
