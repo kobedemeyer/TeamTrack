@@ -1497,6 +1497,190 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
 .cat-empty::before { content: '\1F4C2'; }
 .manage-empty::before { content: '\1F465'; }
 
+/* ── Activity Feed ──────────────────────────────────────── */
+
+.feed-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 24px;
+}
+
+.feed-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg2);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  box-shadow: var(--shadow);
+  animation: fadeUp 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.feed-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  color: var(--bg);
+  flex-shrink: 0;
+}
+
+.feed-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.feed-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.feed-action {
+  font-size: 13px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.feed-meta {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.feed-count {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  color: var(--accent);
+}
+
+.feed-time {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.feed-status {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.feed-status.approved { background: var(--green); color: #fff; }
+.feed-status.pending { background: var(--accent-warm); color: #fff; }
+.feed-status.rejected { background: var(--red); color: #fff; }
+
+/* ── Admin Inbox ────────────────────────────────────────── */
+
+.inbox-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 24px;
+}
+
+.inbox-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: var(--bg2);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  box-shadow: var(--shadow);
+  transition: opacity 0.3s;
+  animation: fadeUp 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.inbox-item.dimmed { opacity: 0.4; pointer-events: none; }
+
+.inbox-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.inbox-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.inbox-detail {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.inbox-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.inbox-approve-btn, .inbox-reject-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.inbox-approve-btn { background: var(--green); color: #fff; }
+.inbox-reject-btn { background: var(--red); color: #fff; }
+.inbox-approve-btn:active, .inbox-reject-btn:active { opacity: 0.6; }
+
+.inbox-empty {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 48px 0;
+  font-size: 15px;
+}
+
+.inbox-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--red);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  padding: 0 5px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* ── Admin toggle button (Manage Team) ──────────────────── */
+
+.manage-admin-btn {
+  background: none;
+  border: 2px solid var(--accent-warm);
+  color: var(--accent-warm);
+  font-family: 'Barlow', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-left: 4px;
+}
+
+.manage-admin-btn.is-admin-active {
+  background: var(--accent-warm);
+  color: #fff;
+}
+
+.manage-admin-btn:active { opacity: 0.6; }
+
 
 </style>
 </head>
@@ -1636,6 +1820,16 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
       <div class="home-tile-label">RnR</div>
       <div class="home-tile-desc">Competition</div>
     </div>
+    <div class="home-tile" onclick="goTo('feed')">
+      <div class="home-tile-icon">&#128240;</div>
+      <div class="home-tile-label">Activity</div>
+      <div class="home-tile-desc">Live feed</div>
+    </div>
+    <div class="home-tile admin-only" onclick="goTo('inbox')">
+      <div class="home-tile-icon">&#128229;</div>
+      <div class="home-tile-label">Inbox</div>
+      <div class="home-tile-desc" id="inbox-tile-desc">Pending approvals</div>
+    </div>
     <div class="home-tile admin-only" onclick="goTo('allteams')">
       <div class="home-tile-icon">&#127760;</div>
       <div class="home-tile-label">All Teams</div>
@@ -1762,6 +1956,34 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════
+     ACTIVITY FEED SCREEN
+     ══════════════════════════════════════════════════════════════ -->
+<div id="feed-screen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goTo('home')">Back</button>
+    <h1>Activity</h1>
+    <button class="refresh-btn" id="feed-refresh" onclick="invalidateApiCache();delete screenLastLoaded['feed'];loadFeed()">&#8635;</button>
+  </div>
+  <div class="feed-list" id="feed-list">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     ADMIN INBOX SCREEN
+     ══════════════════════════════════════════════════════════════ -->
+<div id="inbox-screen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goTo('home')">Back</button>
+    <h1>Inbox</h1>
+    <button class="refresh-btn" id="inbox-refresh" onclick="invalidateApiCache();delete screenLastLoaded['inbox'];loadInbox()">&#8635;</button>
+  </div>
+  <div class="inbox-list" id="inbox-list">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
      JAVASCRIPT
      ══════════════════════════════════════════════════════════════ -->
 <script>
@@ -1774,6 +1996,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxfUmJX6zZFw7tgC6FD5ZTz
 let currentUser = localStorage.getItem('tt_user') || '';
 let currentTeamId = localStorage.getItem('tt_teamId') || '';
 let currentTeamName = localStorage.getItem('tt_teamName') || '';
+let currentUserIsAdmin = localStorage.getItem('tt_isAdmin') === '1';
 let currentScreen = 'login';
 let categoriesCache = [];
 let summaryCache = null;
@@ -1797,7 +2020,9 @@ const SCREENS = {
   profile:    'profile-screen',
   manageteam: 'manage-team-screen',
   allteams:   'allteams-screen',
-  rnr:        'rnr-screen'
+  rnr:        'rnr-screen',
+  feed:       'feed-screen',
+  inbox:      'inbox-screen'
 };
 
 // ── Init ────────────────────────────────────────────────────
@@ -1829,14 +2054,18 @@ document.addEventListener('DOMContentLoaded', function() {
   // Auto-login if name and team are saved
   if (currentUser && currentTeamId) {
     goTo('hub');
-    // Re-check team in background in case user was moved
+    // Re-check team and admin status in background
     api('checkName', { name: currentUser }).then(function(res) {
-      if (res.exists && res.teamId && res.teamId !== currentTeamId) {
-        currentTeamId = res.teamId;
-        currentTeamName = res.teamName;
-        localStorage.setItem('tt_teamId', res.teamId);
-        localStorage.setItem('tt_teamName', res.teamName);
-        document.getElementById('home-team-badge').textContent = res.teamName;
+      if (res.exists) {
+        if (res.teamId && res.teamId !== currentTeamId) {
+          currentTeamId = res.teamId;
+          currentTeamName = res.teamName;
+          localStorage.setItem('tt_teamId', res.teamId);
+          localStorage.setItem('tt_teamName', res.teamName);
+        }
+        currentUserIsAdmin = !!res.isAdmin;
+        localStorage.setItem('tt_isAdmin', currentUserIsAdmin ? '1' : '');
+        updateAdminStatus();
       }
     });
   } else if (currentUser) {
@@ -1909,7 +2138,7 @@ var loginCheckData = null;
 function updateAdminStatus() {
   var urlAdmin = new URLSearchParams(window.location.search).has('admin');
   var nameAdmin = currentUser && currentUser.toLowerCase() === 'kobe';
-  isAdmin = urlAdmin || nameAdmin;
+  isAdmin = urlAdmin || nameAdmin || currentUserIsAdmin;
   if (isAdmin) {
     document.body.classList.add('is-admin');
   } else {
@@ -1929,6 +2158,8 @@ function finishLogin(name, res) {
 
   currentUser = res.name;
   localStorage.setItem('tt_user', res.name);
+  currentUserIsAdmin = !!res.isAdmin;
+  localStorage.setItem('tt_isAdmin', currentUserIsAdmin ? '1' : '');
   updateAdminStatus();
   if (res.teamId) {
     currentTeamId = res.teamId;
@@ -1945,9 +2176,11 @@ function logout() {
   currentUser = '';
   currentTeamId = '';
   currentTeamName = '';
+  currentUserIsAdmin = false;
   localStorage.removeItem('tt_user');
   localStorage.removeItem('tt_teamId');
   localStorage.removeItem('tt_teamName');
+  localStorage.removeItem('tt_isAdmin');
   document.getElementById('login-name').value = '';
   document.getElementById('login-password').style.display = 'none';
   document.getElementById('login-password').value = '';
@@ -2070,6 +2303,12 @@ function goTo(screen) {
       break;
     case 'rnr':
       if (!screenIsFresh('rnr')) loadRnR();
+      break;
+    case 'feed':
+      if (!screenIsFresh('feed')) loadFeed();
+      break;
+    case 'inbox':
+      if (!screenIsFresh('inbox')) loadInbox();
       break;
   }
 }
@@ -3341,10 +3580,13 @@ function loadManageTeam() {
         var initials = getInitials(m.name);
         var color = getAvatarColor(m.name);
         var safeName = esc(m.name).replace(/'/g, "\\'");
+        var adminBtnClass = m.isAdmin ? 'manage-admin-btn is-admin-active' : 'manage-admin-btn';
+        var adminBtnLabel = m.isAdmin ? 'Admin' : 'Make Admin';
         html += '<div class="manage-member-row" id="mmr-' + esc(m.name) + '">' +
           '<div class="manage-member-avatar" style="background:' + color + '">' + esc(initials) + '</div>' +
           '<div class="manage-member-name">' + esc(m.name) + '</div>' +
           '<span class="manage-member-actions">' +
+          '<button class="' + adminBtnClass + ' super-admin-only" onclick="toggleAdmin(\'' + safeName + '\',' + (m.isAdmin ? 'true' : 'false') + ')">' + adminBtnLabel + '</button>' +
           '<button class="manage-move-btn admin-only" onclick="startMoveMember(\'' + safeName + '\',\'' + esc(m.teamId) + '\')">Move</button>' +
           '<button class="manage-remove-btn" onclick="removeMember(\'' + safeName + '\')">Remove</button>' +
           '<button class="manage-delete-btn admin-only" onclick="fullDeleteMember(\'' + safeName + '\')">Delete</button>' +
@@ -3469,6 +3711,160 @@ function deleteManageKpi(catId, catName) {
       showToast('Deleted: ' + catName);
       loadManageTeam();
     } else {
+      showToast('Error: ' + (res.error || 'unknown'));
+    }
+  });
+}
+
+function toggleAdmin(name, currentlyAdmin) {
+  var newVal = currentlyAdmin ? '0' : '1';
+  var label = currentlyAdmin ? 'Remove admin from ' + name + '?' : 'Make ' + name + ' an admin?';
+  if (!confirm(label)) return;
+
+  api('setAdminStatus', { name: name, isAdmin: newVal, caller: currentUser }).then(function(res) {
+    if (res.ok) {
+      showToast(currentlyAdmin ? name + ' is no longer admin' : name + ' is now admin');
+      loadManageTeam();
+    } else {
+      showToast('Error: ' + (res.error || 'unknown'));
+    }
+  });
+}
+
+// ── Activity Feed ───────────────────────────────────────────
+
+function loadFeed() {
+  var btn = document.getElementById('feed-refresh');
+  if (btn.classList.contains('spinning')) return;
+  var el = document.getElementById('feed-list');
+  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  btn.classList.add('spinning');
+
+  api('getLogs', { limit: 50, teamId: currentTeamId }).then(function(logs) {
+    btn.classList.remove('spinning');
+    screenLastLoaded['feed'] = Date.now();
+
+    if (logs.error || !Array.isArray(logs)) {
+      el.innerHTML = '<div class="log-empty">Could not load activity</div>';
+      return;
+    }
+
+    if (!logs.length) {
+      el.innerHTML = '<div class="log-empty">No activity yet</div>';
+      return;
+    }
+
+    var html = '';
+    logs.forEach(function(log, i) {
+      var initials = getInitials(log.person);
+      var color = getAvatarColor(log.person);
+      var countStr = (log.count > 0 ? '+' : '') + log.count;
+      var status = log.status || 'approved';
+
+      // Regular users only see their own pending status
+      var showStatus = isAdmin || (status !== 'approved' && log.person === currentUser);
+
+      html += '<div class="feed-item" style="animation-delay:' + (i * 30) + 'ms">' +
+        '<div class="feed-avatar" style="background:' + color + '">' + esc(initials) + '</div>' +
+        '<div class="feed-info">' +
+        '<div class="feed-name">' + esc(log.person) + '</div>' +
+        '<div class="feed-action">' + esc(log.categoryName) + '</div>' +
+        '</div>' +
+        '<div class="feed-meta">' +
+        '<div class="feed-count">' + countStr + '</div>' +
+        '<div class="feed-time">' + formatTime(log.timestamp) + '</div>' +
+        (showStatus ? '<div class="feed-status ' + status + '">' + status + '</div>' : '') +
+        '</div>' +
+        '</div>';
+    });
+
+    el.innerHTML = html;
+  });
+}
+
+// ── Admin Inbox ─────────────────────────────────────────────
+
+function loadInbox() {
+  var btn = document.getElementById('inbox-refresh');
+  if (btn.classList.contains('spinning')) return;
+  var el = document.getElementById('inbox-list');
+  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  btn.classList.add('spinning');
+
+  api('getPendingLogs', { teamId: currentTeamId }).then(function(logs) {
+    btn.classList.remove('spinning');
+    screenLastLoaded['inbox'] = Date.now();
+
+    if (logs.error || !Array.isArray(logs)) {
+      el.innerHTML = '<div class="inbox-empty">Could not load pending actions</div>';
+      return;
+    }
+
+    // Update badge on home tile
+    var descEl = document.getElementById('inbox-tile-desc');
+    if (descEl) descEl.textContent = logs.length ? logs.length + ' pending' : 'No pending';
+
+    if (!logs.length) {
+      el.innerHTML = '<div class="inbox-empty">All clear — no pending actions</div>';
+      return;
+    }
+
+    var html = '';
+    logs.forEach(function(log, i) {
+      var initials = getInitials(log.person);
+      var color = getAvatarColor(log.person);
+      var countStr = (log.count > 0 ? '+' : '') + log.count;
+
+      html += '<div class="inbox-item" id="inbox-' + i + '" style="animation-delay:' + (i * 30) + 'ms"' +
+        ' data-ts="' + esc(log.timestamp) + '" data-person="' + esc(log.person) + '">' +
+        '<div class="feed-avatar" style="background:' + color + '">' + esc(initials) + '</div>' +
+        '<div class="inbox-info">' +
+        '<div class="inbox-name">' + esc(log.person) + '</div>' +
+        '<div class="inbox-detail">' + countStr + ' ' + esc(log.categoryName) + ' &middot; ' + formatTime(log.timestamp) + '</div>' +
+        '</div>' +
+        '<div class="inbox-actions">' +
+        '<button class="inbox-approve-btn" data-idx="' + i + '">Approve</button>' +
+        '<button class="inbox-reject-btn" data-idx="' + i + '">Reject</button>' +
+        '</div>' +
+        '</div>';
+    });
+
+    el.innerHTML = html;
+
+    // Attach handlers
+    el.querySelectorAll('.inbox-approve-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() { handleInboxAction(btn.dataset.idx, 'approved'); });
+    });
+    el.querySelectorAll('.inbox-reject-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() { handleInboxAction(btn.dataset.idx, 'rejected'); });
+    });
+  });
+}
+
+function handleInboxAction(idx, status) {
+  var item = document.getElementById('inbox-' + idx);
+  if (!item) return;
+  var ts = item.dataset.ts;
+  var person = item.dataset.person;
+
+  // Optimistic: dim
+  item.classList.add('dimmed');
+
+  api('setLogStatus', { timestamp: ts, person: person, status: status, caller: currentUser }).then(function(res) {
+    if (res.ok) {
+      item.remove();
+      invalidateApiCache();
+      screenLastLoaded = {};
+      showToast(status === 'approved' ? 'Approved' : 'Rejected');
+      // Update badge count
+      var remaining = document.querySelectorAll('.inbox-item:not(.dimmed)').length;
+      var descEl = document.getElementById('inbox-tile-desc');
+      if (descEl) descEl.textContent = remaining ? remaining + ' pending' : 'No pending';
+      if (!remaining) {
+        document.getElementById('inbox-list').innerHTML = '<div class="inbox-empty">All clear — no pending actions</div>';
+      }
+    } else {
+      item.classList.remove('dimmed');
       showToast('Error: ' + (res.error || 'unknown'));
     }
   });

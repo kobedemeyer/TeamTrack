@@ -18,7 +18,7 @@ function doGet(e) {
         result = getSummary(e.parameter.teamId);
         break;
       case 'getLogs':
-        result = getLogs(e.parameter.limit, e.parameter.teamId);
+        result = getLogs(e.parameter.limit, e.parameter.teamId, e.parameter.statusFilter);
         break;
       case 'addCategory':
         result = addCategory(e.parameter.name, e.parameter.person, e.parameter.teamId);
@@ -73,6 +73,15 @@ function doGet(e) {
         break;
       case 'getAllSummaries':
         result = getAllSummaries();
+        break;
+      case 'setAdminStatus':
+        result = setAdminStatus(e.parameter.name, e.parameter.isAdmin, e.parameter.caller);
+        break;
+      case 'setLogStatus':
+        result = setLogStatus(e.parameter.timestamp, e.parameter.person, e.parameter.status, e.parameter.caller);
+        break;
+      case 'getPendingLogs':
+        result = getPendingLogs(e.parameter.teamId);
         break;
       default:
         result = { error: 'Unknown action: ' + action };
@@ -138,6 +147,20 @@ function addCategory(name, person, teamId) {
 
 // ── Logs ────────────────────────────────────────────────────
 
+function isPersonAdmin(personName) {
+  var trimmed = personName.trim().toLowerCase();
+  if (trimmed === 'kobe') return true;
+  var sheet = SS.getSheetByName('Members');
+  if (!sheet) return false;
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0].toString().toLowerCase() === trimmed) {
+      return data[i][4] === '1' || data[i][4] === 1;
+    }
+  }
+  return false;
+}
+
 function addLog(person, categoryId, count) {
   if (!person || !categoryId) return { error: 'Missing person or categoryId' };
 
@@ -146,13 +169,15 @@ function addLog(person, categoryId, count) {
   const cat = cats.find(function(c) { return c.id === categoryId; });
   if (!cat) return { error: 'Category not found' };
 
+  var status = isPersonAdmin(person) ? 'approved' : 'pending';
+
   const sheet = SS.getSheetByName('Logs');
   const ts = new Date().toISOString();
-  sheet.appendRow([ts, person.trim(), categoryId, cat.name, cnt]);
-  return { ok: true, timestamp: ts };
+  sheet.appendRow([ts, person.trim(), categoryId, cat.name, cnt, status]);
+  return { ok: true, timestamp: ts, status: status };
 }
 
-function getLogs(limit, teamId) {
+function getLogs(limit, teamId, statusFilter) {
   const sheet = SS.getSheetByName('Logs');
   const data = sheet.getDataRange().getValues();
   var rows = data.slice(1);
@@ -163,6 +188,17 @@ function getLogs(limit, teamId) {
     var catIds = {};
     teamCats.forEach(function(c) { catIds[c.id] = true; });
     rows = rows.filter(function(r) { return catIds[r[2]]; });
+  }
+
+  // Filter by status if requested
+  if (statusFilter) {
+    rows = rows.filter(function(r) {
+      var s = (r[5] || '').toString();
+      if (statusFilter === 'pending') return s === 'pending';
+      if (statusFilter === 'approved') return s === 'approved' || s === '';
+      if (statusFilter === 'rejected') return s === 'rejected';
+      return true;
+    });
   }
 
   const max = parseInt(limit, 10) || 50;
@@ -177,7 +213,8 @@ function getLogs(limit, teamId) {
       person: r[1],
       categoryId: r[2],
       categoryName: r[3],
-      count: r[4]
+      count: r[4],
+      status: (r[5] || '').toString() || 'approved'
     };
   });
 }
@@ -201,12 +238,14 @@ function getSummary(teamId) {
     });
   }
 
-  // Build totals: { person: { categoryId: total } }
+  // Build totals: { person: { categoryId: total } } — only approved logs
   var totals = {};
   logs.forEach(function(r) {
     var person = r[1];
     var catId = r[2];
     var cnt = parseInt(r[4], 10) || 0;
+    var status = (r[5] || '').toString();
+    if (status === 'rejected' || status === 'pending') return;
     if (!catIds[catId]) return;
     if (!totals[person]) totals[person] = {};
     totals[person][catId] = (totals[person][catId] || 0) + cnt;
@@ -290,6 +329,8 @@ function getProfile(name, teamId) {
   logs.forEach(function(r) {
     if (r[1].toString().toLowerCase() !== trimmed) return;
     if (catIds && !catIds[r[2]]) return;
+    var status = (r[5] || '').toString();
+    if (status === 'rejected' || status === 'pending') return;
     var cnt = parseInt(r[4], 10) || 0;
     totalActions += cnt;
     var catName = r[3];
@@ -321,7 +362,7 @@ function getMembers(teamId) {
   var result = [];
   data.forEach(function(r) {
     if (r[2] === teamId) {
-      result.push({ name: r[0], joinedAt: r[1], teamId: r[2] });
+      result.push({ name: r[0], joinedAt: r[1], teamId: r[2], isAdmin: r[4] === '1' || r[4] === 1 || r[0].toString().toLowerCase() === 'kobe' });
     }
   });
   return result;
@@ -349,7 +390,8 @@ function checkName(name) {
         }
       }
       var hasPassword = !!(data[i][3]);
-      return { exists: true, name: data[i][0], teamId: teamId, teamName: teamName, hasPassword: hasPassword };
+      var memberIsAdmin = data[i][4] === '1' || data[i][4] === 1 || data[i][0].toString().toLowerCase() === 'kobe';
+      return { exists: true, name: data[i][0], teamId: teamId, teamName: teamName, hasPassword: hasPassword, isAdmin: memberIsAdmin };
     }
   }
   return { exists: false };
@@ -412,7 +454,8 @@ function getAllMembers() {
       name: r[0],
       joinedAt: r[1],
       teamId: tid,
-      teamName: tid ? (teamNames[tid] || 'Unknown team') : 'No team'
+      teamName: tid ? (teamNames[tid] || 'Unknown team') : 'No team',
+      isAdmin: r[4] === '1' || r[4] === 1 || r[0].toString().toLowerCase() === 'kobe'
     };
   });
 }
@@ -521,6 +564,84 @@ function removeMemberFromTeam(name) {
   return { error: 'Member not found' };
 }
 
+// ── Admin Status ────────────────────────────────────────────
+
+function setAdminStatus(name, isAdminVal, caller) {
+  if (!name || !caller) return { error: 'Missing name or caller' };
+  if (caller.trim().toLowerCase() !== 'kobe') return { error: 'Only super-admin can set admin status' };
+
+  var sheet = SS.getSheetByName('Members');
+  if (!sheet) return { error: 'Members sheet not found' };
+  var data = sheet.getDataRange().getValues();
+  var trimmed = name.trim().toLowerCase();
+
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0].toString().toLowerCase() === trimmed) {
+      sheet.getRange(i + 1, 5).setValue(isAdminVal === '1' ? '1' : '');
+      return { ok: true };
+    }
+  }
+  return { error: 'Member not found' };
+}
+
+// ── Log Status (Approve/Reject) ─────────────────────────────
+
+function setLogStatus(timestamp, person, status, caller) {
+  if (!timestamp || !person || !status || !caller) return { error: 'Missing parameters' };
+  if (!isPersonAdmin(caller)) return { error: 'Only admins can approve/reject logs' };
+  if (status !== 'approved' && status !== 'rejected') return { error: 'Invalid status' };
+
+  var sheet = SS.getSheetByName('Logs');
+  if (!sheet) return { error: 'Logs sheet not found' };
+  var data = sheet.getDataRange().getValues();
+  var trimmedPerson = person.trim().toLowerCase();
+
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0].toString() === timestamp &&
+        data[i][1].toString().toLowerCase() === trimmedPerson) {
+      sheet.getRange(i + 1, 6).setValue(status);
+      return { ok: true };
+    }
+  }
+  return { error: 'Log not found' };
+}
+
+// ── Pending Logs ────────────────────────────────────────────
+
+function getPendingLogs(teamId) {
+  var sheet = SS.getSheetByName('Logs');
+  if (!sheet) return [];
+  var data = sheet.getDataRange().getValues();
+  var rows = data.slice(1);
+
+  // Filter to pending only
+  rows = rows.filter(function(r) {
+    return (r[5] || '').toString() === 'pending';
+  });
+
+  // Filter by team's categories if teamId provided
+  if (teamId) {
+    var teamCats = getCategories(teamId);
+    var catIds = {};
+    teamCats.forEach(function(c) { catIds[c.id] = true; });
+    rows = rows.filter(function(r) { return catIds[r[2]]; });
+  }
+
+  // Most recent first
+  rows.reverse();
+
+  return rows.map(function(r) {
+    return {
+      timestamp: r[0],
+      person: r[1],
+      categoryId: r[2],
+      categoryName: r[3],
+      count: r[4],
+      status: 'pending'
+    };
+  });
+}
+
 // ── All Summaries (batch) ────────────────────────────────────
 
 function getAllSummaries() {
@@ -572,12 +693,14 @@ function getAllSummaries() {
     var catIds = {};
     teamCats.forEach(function(c) { catIds[c.id] = true; });
 
-    // Build totals from logs
+    // Build totals from logs — only approved logs
     var totals = {};
     allLogs.forEach(function(r) {
       var person = r[1];
       var catId = r[2];
       var cnt = parseInt(r[4], 10) || 0;
+      var status = (r[5] || '').toString();
+      if (status === 'rejected' || status === 'pending') return;
       if (!catIds[catId]) return;
       if (!totals[person]) totals[person] = {};
       totals[person][catId] = (totals[person][catId] || 0) + cnt;
