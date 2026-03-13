@@ -830,50 +830,6 @@ html, body {
   padding: 32px 0;
 }
 
-/* ── Activity ────────────────────────────────────────────── */
-
-.activity-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-bottom: 24px;
-}
-
-.activity-item {
-  background: var(--bg2);
-  border-radius: 8px;
-  padding: 12px 14px;
-}
-
-.activity-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-}
-
-.activity-person {
-  font-weight: 700;
-  color: var(--accent-light);
-  font-size: 14px;
-}
-
-.activity-time {
-  font-size: 11px;
-  color: var(--text-dim);
-}
-
-.activity-detail {
-  font-size: 13px;
-  color: var(--text-dim);
-  margin-top: 2px;
-}
-
-.activity-empty {
-  text-align: center;
-  color: var(--text-dim);
-  padding: 48px 0;
-}
-
 /* ── Loading spinner ─────────────────────────────────────── */
 
 .spinner {
@@ -1125,20 +1081,6 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
 
 /* ── Delete buttons (admin-only) ────────────────────────── */
 
-.activity-delete-btn {
-  background: none;
-  border: none;
-  color: var(--red);
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  line-height: 1;
-  flex-shrink: 0;
-}
-.activity-delete-btn:active { opacity: 0.5; }
-
 .cat-delete-btn {
   background: none;
   border: none;
@@ -1381,7 +1323,7 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
 /* ── Box shadows on cards ───────────────────────────────── */
 
 .home-tile, .hub-tile, .log-card, .rnr-row, .cat-item,
-.activity-item, .profile-stat-card, .dash-team-card,
+.profile-stat-card, .dash-team-card,
 .allteams-card, .manage-member-row, .team-btn, .profile-rnr-item {
   box-shadow: var(--shadow);
 }
@@ -1537,7 +1479,7 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
 
 /* ── Empty states ───────────────────────────────────────── */
 
-.dash-empty, .log-empty, .cat-empty, .activity-empty, .manage-empty {
+.dash-empty, .log-empty, .cat-empty, .manage-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1546,7 +1488,7 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
 }
 
 .dash-empty::before, .log-empty::before, .cat-empty::before,
-.activity-empty::before, .manage-empty::before {
+.manage-empty::before {
   font-size: 40px;
   line-height: 1;
 }
@@ -1554,7 +1496,6 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
 .dash-empty::before { content: '\1F4CA'; }
 .log-empty::before { content: '\1F4DD'; }
 .cat-empty::before { content: '\1F4C2'; }
-.activity-empty::before { content: '\1F4AD'; }
 .manage-empty::before { content: '\1F465'; }
 
 
@@ -1691,11 +1632,6 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
       <div class="home-tile-label">Categories</div>
       <div class="home-tile-desc">Manage KPIs</div>
     </div>
-    <div class="home-tile" onclick="goTo('activity')">
-      <div class="home-tile-icon">&#128240;</div>
-      <div class="home-tile-label">Activity</div>
-      <div class="home-tile-desc">Recent logs</div>
-    </div>
     <div class="home-tile" onclick="goTo('rnr')">
       <div class="home-tile-icon">&#127942;</div>
       <div class="home-tile-label">RnR</div>
@@ -1772,20 +1708,6 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
   <div class="cat-add-row">
     <input id="cat-new-name" class="cat-input" type="text" placeholder="New category name" maxlength="40">
     <button class="cat-add-btn" onclick="createCategory()">ADD</button>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════════════════════════════
-     ACTIVITY SCREEN
-     ══════════════════════════════════════════════════════════════ -->
-<div id="activity-screen" class="screen">
-  <div class="header">
-    <button class="back-btn" onclick="goTo('home')">Back</button>
-    <h1>Activity</h1>
-    <button class="refresh-btn" id="act-refresh" onclick="invalidateApiCache();delete screenLastLoaded['activity'];loadActivity()">&#8635;</button>
-  </div>
-  <div class="activity-list" id="activity-list">
-    <div class="loading-center"><div class="spinner"></div></div>
   </div>
 </div>
 
@@ -1873,7 +1795,6 @@ const SCREENS = {
   dashboard:  'dash-screen',
   log:        'log-screen',
   categories: 'cat-screen',
-  activity:   'activity-screen',
   profile:    'profile-screen',
   manageteam: 'manage-team-screen',
   allteams:   'allteams-screen',
@@ -2138,9 +2059,6 @@ function goTo(screen) {
       break;
     case 'categories':
       if (!screenIsFresh('categories')) loadCategories();
-      break;
-    case 'activity':
-      if (!screenIsFresh('activity')) loadActivity();
       break;
     case 'profile':
       loadProfile();
@@ -3126,66 +3044,6 @@ function createCategory() {
   });
 }
 
-// ── Activity ────────────────────────────────────────────────
-
-function loadActivity() {
-  var btn = document.getElementById('act-refresh');
-  if (btn.classList.contains('spinning')) return;
-  var el = document.getElementById('activity-list');
-  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
-  btn.classList.add('spinning');
-
-  apiCached('getLogs', { limit: 50, teamId: currentTeamId }).then(function(logs) {
-    btn.classList.remove('spinning');
-    screenLastLoaded['activity'] = Date.now();
-    if (logs.error || !Array.isArray(logs)) {
-      el.innerHTML = '<div class="activity-empty">Could not load activity</div>';
-      return;
-    }
-
-    if (!logs.length) {
-      el.innerHTML = '<div class="activity-empty">No activity yet</div>';
-      return;
-    }
-
-    var html = '';
-    logs.forEach(function(log) {
-      var t = formatTime(log.timestamp);
-      html += '<div class="activity-item">' +
-        '<div class="activity-top">' +
-        '<span class="activity-person">' + esc(log.person) + '</span>' +
-        '<span class="activity-time">' + t + '</span>' +
-        '<button class="activity-delete-btn admin-only" data-ts="' + esc(log.timestamp) + '" data-person="' + esc(log.person) + '">&#10005;</button>' +
-        '</div>' +
-        '<div class="activity-detail">+' + log.count + ' ' + esc(log.categoryName) + '</div>' +
-        '</div>';
-    });
-    el.innerHTML = html;
-
-    // Attach delete handlers
-    el.querySelectorAll('.activity-delete-btn').forEach(function(btn) {
-      btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        var ts = btn.dataset.ts;
-        var person = btn.dataset.person;
-        if (!confirm('Delete this log by ' + person + '?')) return;
-        btn.disabled = true;
-        api('deleteLog', { timestamp: ts, person: person }).then(function(res) {
-          if (res.ok) {
-            invalidateApiCache();
-            screenLastLoaded = {};
-            btn.closest('.activity-item').remove();
-            showToast('Log deleted');
-          } else {
-            showToast('Error: ' + (res.error || 'unknown'));
-            btn.disabled = false;
-          }
-        });
-      });
-    });
-  });
-}
-
 // ── Utilities ───────────────────────────────────────────────
 
 function esc(str) {
@@ -3628,7 +3486,7 @@ function loadAllTeams() {
     var members = results[1];
 
     if (!Array.isArray(teams) || !Array.isArray(members)) {
-      el.innerHTML = '<div class="activity-empty">Could not load data</div>';
+      el.innerHTML = '<div class="manage-empty">Could not load data</div>';
       return;
     }
 
@@ -3641,7 +3499,7 @@ function loadAllTeams() {
     });
 
     if (!teams.length) {
-      el.innerHTML = '<div class="activity-empty">No teams found</div>';
+      el.innerHTML = '<div class="manage-empty">No teams found</div>';
       return;
     }
 
