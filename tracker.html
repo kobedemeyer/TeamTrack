@@ -471,7 +471,6 @@ html, body {
 .dash-table {
   border-collapse: collapse;
   width: 100%;
-  table-layout: fixed;
 }
 
 .dash-table th, .dash-table td {
@@ -479,8 +478,7 @@ html, body {
   text-align: center;
   font-size: 14px;
   border-bottom: 1px solid var(--bg3);
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dash-table th {
@@ -491,8 +489,6 @@ html, body {
   position: sticky;
   top: 0;
   background: var(--bg);
-  white-space: normal;
-  word-break: break-word;
 }
 
 .dash-table th:first-child,
@@ -505,7 +501,8 @@ html, body {
   z-index: 1;
   white-space: normal;
   word-break: break-word;
-  width: 100px;
+  min-width: 90px;
+  max-width: 30vw;
 }
 
 .dash-table th:last-child,
