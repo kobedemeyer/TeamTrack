@@ -1852,6 +1852,11 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
       <div class="home-tile-label">Log Action</div>
       <div class="home-tile-desc">Track progress</div>
     </div>
+    <div class="home-tile" onclick="goTo('hackdash')">
+      <div class="home-tile-icon">&#128202;</div>
+      <div class="home-tile-label">Dashboard</div>
+      <div class="home-tile-desc">Team overview</div>
+    </div>
     <div class="home-tile" onclick="goTo('hackboard')">
       <div class="home-tile-icon">&#127942;</div>
       <div class="home-tile-label">Leaderboard</div>
@@ -1894,6 +1899,20 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
     <button class="refresh-btn" id="hackboard-refresh" onclick="invalidateApiCache();delete screenLastLoaded['hackboard'];loadHackLeaderboard()">&#8635;</button>
   </div>
   <div id="hackboard-content">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     HACKATHON DASHBOARD SCREEN
+     ══════════════════════════════════════════════════════════════ -->
+<div id="hackdash-screen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goTo('hackathon')">Back</button>
+    <h1>Dashboard</h1>
+    <button class="refresh-btn" id="hackdash-refresh" onclick="invalidateApiCache();delete screenLastLoaded['hackdash'];loadHackDashboard()">&#8635;</button>
+  </div>
+  <div id="hackdash-content">
     <div class="loading-center"><div class="spinner"></div></div>
   </div>
 </div>
@@ -2159,6 +2178,7 @@ const SCREENS = {
   hub:        'hub-screen',
   hackathon:  'hackathon-screen',
   hacklog:    'hacklog-screen',
+  hackdash:   'hackdash-screen',
   hackboard:  'hackboard-screen',
   hackfeed:   'hackfeed-screen',
   hackinbox:  'hackinbox-screen',
@@ -2463,6 +2483,9 @@ function goTo(screen) {
       break;
     case 'hacklog':
       if (!screenIsFresh('hacklog')) loadHackathonLog();
+      break;
+    case 'hackdash':
+      if (!screenIsFresh('hackdash')) loadHackDashboard();
       break;
     case 'hackboard':
       if (!screenIsFresh('hackboard')) loadHackLeaderboard();
@@ -3139,6 +3162,67 @@ function loadHackathonLog() {
         });
       });
     });
+  });
+}
+
+function loadHackDashboard() {
+  var btn = document.getElementById('hackdash-refresh');
+  if (btn.classList.contains('spinning')) return;
+  var el = document.getElementById('hackdash-content');
+  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  btn.classList.add('spinning');
+
+  var myTasks = getMyHackTasks();
+  if (!myTasks.length) {
+    btn.classList.remove('spinning');
+    screenLastLoaded['hackdash'] = Date.now();
+    el.innerHTML = '<div class="log-empty">No hackathon tasks for your team</div>';
+    return;
+  }
+
+  apiCached('getSummary', { teamId: currentTeamId }).then(function(data) {
+    btn.classList.remove('spinning');
+    screenLastLoaded['hackdash'] = Date.now();
+    if (data.error || !data.categories) {
+      el.innerHTML = '<div class="log-empty">Could not load data</div>';
+      return;
+    }
+
+    var catByName = {};
+    data.categories.forEach(function(c) { catByName[c.name.toLowerCase()] = c; });
+
+    // Filter to hack tasks that exist as categories
+    var cols = [];
+    myTasks.forEach(function(t) {
+      var cat = catByName[t.name.toLowerCase()];
+      if (cat) cols.push({ task: t, cat: cat });
+    });
+
+    if (!cols.length || !data.members || !data.members.length) {
+      el.innerHTML = '<div class="log-empty">No hackathon data yet</div>';
+      return;
+    }
+
+    var html = '<div class="dash-team-card">';
+    html += '<table class="dash-table"><thead><tr><th>Member</th>';
+    cols.forEach(function(col) {
+      html += '<th>' + esc(col.task.name) + ' <span style="opacity:.5">(' + col.task.points + 'pt)</span></th>';
+    });
+    html += '<th>Total (pts)</th></tr></thead><tbody>';
+
+    data.members.forEach(function(m) {
+      html += '<tr><td>' + esc(m) + '</td>';
+      var totalPts = 0;
+      cols.forEach(function(col) {
+        var v = (data.totals[m] && data.totals[m][col.cat.id]) || 0;
+        totalPts += v * col.task.points;
+        html += '<td><span class="dash-cell-val">' + v + '</span></td>';
+      });
+      html += '<td><span class="dash-cell-val"><strong>' + totalPts + '</strong></span></td></tr>';
+    });
+
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
   });
 }
 
