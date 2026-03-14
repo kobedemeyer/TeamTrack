@@ -3146,7 +3146,7 @@ function loadHackLeaderboard() {
   el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
   btn.classList.add('spinning');
 
-  fetchAllTeamsSummaries(currentEntity).then(function(validResults) {
+  fetchAllTeamsSummaries().then(function(validResults) {
     btn.classList.remove('spinning');
     screenLastLoaded['hackboard'] = Date.now();
     if (!validResults.length) {
