@@ -30,10 +30,10 @@ function doGet(e) {
         result = registerMember(e.parameter.name, e.parameter.teamId, e.parameter.entity);
         break;
       case 'getTeams':
-        result = getTeams();
+        result = getTeams(e.parameter.entity);
         break;
       case 'addTeam':
-        result = addTeam(e.parameter.name, e.parameter.person);
+        result = addTeam(e.parameter.name, e.parameter.person, e.parameter.entity);
         break;
       case 'getProfile':
         result = getProfile(e.parameter.name, e.parameter.teamId);
@@ -72,7 +72,7 @@ function doGet(e) {
         result = deleteLogsByPerson(e.parameter.name);
         break;
       case 'getAllSummaries':
-        result = getAllSummaries();
+        result = getAllSummaries(e.parameter.entity);
         break;
       case 'setAdminStatus':
         result = setAdminStatus(e.parameter.name, e.parameter.isAdmin, e.parameter.caller);
@@ -97,23 +97,28 @@ function doGet(e) {
 
 // ── Teams ───────────────────────────────────────────────────
 
-function getTeams() {
+function getTeams(entity) {
   const sheet = SS.getSheetByName('Teams');
   if (!sheet) return [];
   const data = sheet.getDataRange().getValues();
-  const rows = data.slice(1);
+  var rows = data.slice(1);
+  if (entity) {
+    rows = rows.filter(function(r) {
+      return (r[4] || 'Antwerpen') === entity;
+    });
+  }
   return rows.map(function(r) {
-    return { id: r[0], name: r[1], createdBy: r[2], createdAt: r[3] };
+    return { id: r[0], name: r[1], createdBy: r[2], createdAt: r[3], entity: r[4] || 'Antwerpen' };
   });
 }
 
-function addTeam(name, person) {
+function addTeam(name, person, entity) {
   if (!name || !person) return { error: 'Missing name or person' };
 
   const sheet = SS.getSheetByName('Teams');
   if (!sheet) return { error: 'Teams sheet not found' };
   const id = Utilities.getUuid().substring(0, 8);
-  sheet.appendRow([id, name.trim(), person.trim(), new Date().toISOString()]);
+  sheet.appendRow([id, name.trim(), person.trim(), new Date().toISOString(), entity || 'Antwerpen']);
   return { ok: true, id: id, name: name.trim() };
 }
 
@@ -650,10 +655,15 @@ function getPendingLogs(teamId) {
 
 // ── All Summaries (batch) ────────────────────────────────────
 
-function getAllSummaries() {
+function getAllSummaries(entity) {
   var teamsSheet = SS.getSheetByName('Teams');
   if (!teamsSheet) return [];
   var teams = teamsSheet.getDataRange().getValues().slice(1);
+  if (entity) {
+    teams = teams.filter(function(t) {
+      return (t[4] || 'Antwerpen') === entity;
+    });
+  }
 
   var catsSheet = SS.getSheetByName('Categories');
   var allCats = catsSheet ? catsSheet.getDataRange().getValues().slice(1) : [];

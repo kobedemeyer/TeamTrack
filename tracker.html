@@ -1824,7 +1824,7 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
   <div class="hub-greeting" id="hub-greeting"></div>
   <div class="hub-team-badge" id="hub-team-badge"></div>
   <div class="hub-grid">
-    <div class="hub-tile" onclick="goTo('home')">
+    <div class="hub-tile" id="hub-tile-tracker" onclick="goTo('home')">
       <div class="hub-tile-icon">&#128202;</div>
       <div class="hub-tile-label">TeamTracker</div>
       <div class="hub-tile-desc">KPI tracking &amp; dashboards</div>
@@ -1857,6 +1857,16 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
       <div class="home-tile-label">Leaderboard</div>
       <div class="home-tile-desc">Rankings</div>
     </div>
+    <div class="home-tile" onclick="goTo('hackfeed')">
+      <div class="home-tile-icon">&#128240;</div>
+      <div class="home-tile-label">Activity</div>
+      <div class="home-tile-desc">Live feed</div>
+    </div>
+    <div class="home-tile admin-only" onclick="goTo('hackinbox')">
+      <div class="home-tile-icon">&#128229;</div>
+      <div class="home-tile-label">Inbox</div>
+      <div class="home-tile-desc" id="hackinbox-tile-desc">Pending approvals</div>
+    </div>
   </div>
 </div>
 
@@ -1884,6 +1894,34 @@ body:not(.is-super-admin) .super-admin-only { display: none !important; }
     <button class="refresh-btn" id="hackboard-refresh" onclick="invalidateApiCache();delete screenLastLoaded['hackboard'];loadHackLeaderboard()">&#8635;</button>
   </div>
   <div id="hackboard-content">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     HACKATHON ACTIVITY FEED SCREEN
+     ══════════════════════════════════════════════════════════════ -->
+<div id="hackfeed-screen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goTo('hackathon')">Back</button>
+    <h1>Activity</h1>
+    <button class="refresh-btn" id="hackfeed-refresh" onclick="invalidateApiCache();delete screenLastLoaded['hackfeed'];loadHackFeed()">&#8635;</button>
+  </div>
+  <div class="feed-list" id="hackfeed-list">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     HACKATHON ADMIN INBOX SCREEN
+     ══════════════════════════════════════════════════════════════ -->
+<div id="hackinbox-screen" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goTo('hackathon')">Back</button>
+    <h1>Inbox</h1>
+    <button class="refresh-btn" id="hackinbox-refresh" onclick="invalidateApiCache();delete screenLastLoaded['hackinbox'];loadHackInbox()">&#8635;</button>
+  </div>
+  <div class="inbox-list" id="hackinbox-list">
     <div class="loading-center"><div class="spinner"></div></div>
   </div>
 </div>
@@ -2122,6 +2160,8 @@ const SCREENS = {
   hackathon:  'hackathon-screen',
   hacklog:    'hacklog-screen',
   hackboard:  'hackboard-screen',
+  hackfeed:   'hackfeed-screen',
+  hackinbox:  'hackinbox-screen',
   home:       'home-screen',
   dashboard:  'dash-screen',
   log:        'log-screen',
@@ -2320,7 +2360,7 @@ function loadTeamSelect() {
   var el = document.getElementById('team-list');
   el.innerHTML = '<div class="team-loading"><div class="spinner"></div></div>';
 
-  api('getTeams').then(function(teams) {
+  api('getTeams', { entity: currentEntity || 'Antwerpen' }).then(function(teams) {
     if (teams.error || !Array.isArray(teams)) {
       el.innerHTML = '<div class="team-loading">Could not load teams</div>';
       return;
@@ -2358,7 +2398,7 @@ function createTeam() {
   if (!name) return;
 
   input.value = '';
-  api('addTeam', { name: name, person: currentUser }).then(function(res) {
+  api('addTeam', { name: name, person: currentUser, entity: currentEntity || 'Antwerpen' }).then(function(res) {
     if (res.ok) {
       selectTeam(res.id, res.name);
     } else {
@@ -2416,6 +2456,8 @@ function goTo(screen) {
       document.getElementById('hub-greeting').textContent = 'Hello, ' + currentUser;
       document.getElementById('hub-team-badge').textContent = currentTeamName;
       setHeaderAvatar('hub-avatar');
+      var trackerTile = document.getElementById('hub-tile-tracker');
+      if (trackerTile) trackerTile.style.display = (currentEntity && currentEntity !== 'Antwerpen') ? 'none' : '';
       break;
     case 'hackathon':
       break;
@@ -2425,7 +2467,14 @@ function goTo(screen) {
     case 'hackboard':
       if (!screenIsFresh('hackboard')) loadHackLeaderboard();
       break;
+    case 'hackfeed':
+      if (!screenIsFresh('hackfeed')) loadHackFeed();
+      break;
+    case 'hackinbox':
+      if (!screenIsFresh('hackinbox')) loadHackInbox();
+      break;
     case 'home':
+      if (currentEntity && currentEntity !== 'Antwerpen') { goTo('hub'); return; }
       setHeaderAvatar('home-avatar');
       break;
     case 'teamselect':
@@ -2506,8 +2555,9 @@ function invalidateApiCache() {
   apiCache = {};
 }
 
-function fetchAllTeamsSummaries() {
-  return apiCached('getAllSummaries').then(function(data) {
+function fetchAllTeamsSummaries(entity) {
+  var params = entity ? { entity: entity } : {};
+  return apiCached('getAllSummaries', params).then(function(data) {
     if (!Array.isArray(data) || data.error) return [];
     return data.map(function(t) {
       return {
@@ -3099,7 +3149,7 @@ function loadHackLeaderboard() {
   el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
   btn.classList.add('spinning');
 
-  fetchAllTeamsSummaries().then(function(validResults) {
+  fetchAllTeamsSummaries(currentEntity).then(function(validResults) {
     btn.classList.remove('spinning');
     screenLastLoaded['hackboard'] = Date.now();
     if (!validResults.length) {
@@ -3822,7 +3872,7 @@ function createTeamFromManage() {
   var name = input.value.trim();
   if (!name) return;
   input.value = '';
-  api('addTeam', { name: name, person: currentUser }).then(function(res) {
+  api('addTeam', { name: name, person: currentUser, entity: currentEntity || 'Antwerpen' }).then(function(res) {
     if (res.ok || res.id) {
       invalidateApiCache(); screenLastLoaded = {};
       showToast('Team created: ' + name);
@@ -3989,8 +4039,9 @@ function loadInbox() {
   });
 }
 
-function handleInboxAction(idx, status) {
-  var item = document.getElementById('inbox-' + idx);
+function handleInboxAction(idx, status, prefix) {
+  var pfx = prefix || 'inbox';
+  var item = document.getElementById(pfx + '-' + idx);
   if (!item) return;
   var ts = item.dataset.ts;
   var person = item.dataset.person;
@@ -4005,16 +4056,136 @@ function handleInboxAction(idx, status) {
       screenLastLoaded = {};
       showToast(status === 'approved' ? 'Approved' : 'Rejected');
       // Update badge count
-      var remaining = document.querySelectorAll('.inbox-item:not(.dimmed)').length;
-      var descEl = document.getElementById('inbox-tile-desc');
+      var listEl = document.getElementById(pfx + '-list');
+      var remaining = listEl ? listEl.querySelectorAll('.inbox-item:not(.dimmed)').length : 0;
+      var descId = pfx === 'hackinbox' ? 'hackinbox-tile-desc' : 'inbox-tile-desc';
+      var descEl = document.getElementById(descId);
       if (descEl) descEl.textContent = remaining ? remaining + ' pending' : 'No pending';
-      if (!remaining) {
-        document.getElementById('inbox-list').innerHTML = '<div class="inbox-empty">All clear — no pending actions</div>';
+      if (!remaining && listEl) {
+        listEl.innerHTML = '<div class="inbox-empty">All clear — no pending actions</div>';
       }
     } else {
       item.classList.remove('dimmed');
       showToast('Error: ' + (res.error || 'unknown'));
     }
+  });
+}
+
+// ── Hackathon Feed & Inbox ───────────────────────────────────
+
+function getHackCategoryNames() {
+  var names = {};
+  HACK_TASKS.forEach(function(t) { names[t.name.toLowerCase()] = true; });
+  return names;
+}
+
+function loadHackFeed() {
+  var btn = document.getElementById('hackfeed-refresh');
+  if (btn.classList.contains('spinning')) return;
+  var el = document.getElementById('hackfeed-list');
+  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  btn.classList.add('spinning');
+
+  api('getLogs', { limit: 50, teamId: currentTeamId }).then(function(logs) {
+    btn.classList.remove('spinning');
+    screenLastLoaded['hackfeed'] = Date.now();
+
+    if (logs.error || !Array.isArray(logs)) {
+      el.innerHTML = '<div class="log-empty">Could not load activity</div>';
+      return;
+    }
+
+    var hackNames = getHackCategoryNames();
+    logs = logs.filter(function(l) { return hackNames[l.categoryName.toLowerCase()]; });
+
+    if (!logs.length) {
+      el.innerHTML = '<div class="log-empty">No hackathon activity yet</div>';
+      return;
+    }
+
+    var html = '';
+    logs.forEach(function(log, i) {
+      var initials = getInitials(log.person);
+      var color = getAvatarColor(log.person);
+      var countStr = (log.count > 0 ? '+' : '') + log.count;
+      var status = log.status || 'approved';
+      var showStatus = isAdmin || (status !== 'approved' && log.person === currentUser);
+
+      html += '<div class="feed-item" style="animation-delay:' + (i * 30) + 'ms">' +
+        '<div class="feed-avatar" style="background:' + color + '">' + esc(initials) + '</div>' +
+        '<div class="feed-info">' +
+        '<div class="feed-name">' + esc(log.person) + '</div>' +
+        '<div class="feed-action">' + esc(log.categoryName) + '</div>' +
+        '</div>' +
+        '<div class="feed-meta">' +
+        '<div class="feed-count">' + countStr + '</div>' +
+        '<div class="feed-time">' + formatTime(log.timestamp) + '</div>' +
+        (showStatus ? '<div class="feed-status ' + status + '">' + status + '</div>' : '') +
+        '</div>' +
+        '</div>';
+    });
+
+    el.innerHTML = html;
+  });
+}
+
+function loadHackInbox() {
+  var btn = document.getElementById('hackinbox-refresh');
+  if (btn.classList.contains('spinning')) return;
+  var el = document.getElementById('hackinbox-list');
+  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  btn.classList.add('spinning');
+
+  api('getPendingLogs', { teamId: currentTeamId }).then(function(logs) {
+    btn.classList.remove('spinning');
+    screenLastLoaded['hackinbox'] = Date.now();
+
+    if (logs.error || !Array.isArray(logs)) {
+      el.innerHTML = '<div class="inbox-empty">Could not load pending actions</div>';
+      return;
+    }
+
+    var hackNames = getHackCategoryNames();
+    logs = logs.filter(function(l) { return hackNames[l.categoryName.toLowerCase()]; });
+
+    // Update badge on hackathon tile
+    var descEl = document.getElementById('hackinbox-tile-desc');
+    if (descEl) descEl.textContent = logs.length ? logs.length + ' pending' : 'No pending';
+
+    if (!logs.length) {
+      el.innerHTML = '<div class="inbox-empty">All clear — no pending actions</div>';
+      return;
+    }
+
+    var html = '';
+    logs.forEach(function(log, i) {
+      var initials = getInitials(log.person);
+      var color = getAvatarColor(log.person);
+      var countStr = (log.count > 0 ? '+' : '') + log.count;
+
+      html += '<div class="inbox-item" id="hackinbox-' + i + '" style="animation-delay:' + (i * 30) + 'ms"' +
+        ' data-ts="' + esc(log.timestamp) + '" data-person="' + esc(log.person) + '">' +
+        '<div class="feed-avatar" style="background:' + color + '">' + esc(initials) + '</div>' +
+        '<div class="inbox-info">' +
+        '<div class="inbox-name">' + esc(log.person) + '</div>' +
+        '<div class="inbox-detail">' + countStr + ' ' + esc(log.categoryName) + ' &middot; ' + formatTime(log.timestamp) + '</div>' +
+        '</div>' +
+        '<div class="inbox-actions">' +
+        '<button class="inbox-approve-btn" data-idx="' + i + '" data-prefix="hackinbox">Approve</button>' +
+        '<button class="inbox-reject-btn" data-idx="' + i + '" data-prefix="hackinbox">Reject</button>' +
+        '</div>' +
+        '</div>';
+    });
+
+    el.innerHTML = html;
+
+    // Attach handlers
+    el.querySelectorAll('.inbox-approve-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() { handleInboxAction(btn.dataset.idx, 'approved', btn.dataset.prefix); });
+    });
+    el.querySelectorAll('.inbox-reject-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() { handleInboxAction(btn.dataset.idx, 'rejected', btn.dataset.prefix); });
+    });
   });
 }
 
