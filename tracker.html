@@ -674,10 +674,11 @@ html, body {
   text-transform: uppercase;
   position: sticky;
   top: 0;
-  background: rgba(255,255,255,0.85);
+  background: var(--bg3);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
+.dash-table th:first-child { background: var(--bg3); }
 
 .dash-table th:first-child,
 .dash-table td:first-child {
@@ -701,7 +702,7 @@ html, body {
 }
 
 .dash-table td { color: var(--text-dim); }
-.dash-cell-val { color: var(--accent); font-family: var(--font-data); font-weight: 600; font-size: 18px; }
+.dash-cell-val { color: var(--accent); font-family: var(--font-data); font-weight: 700; font-size: 18px; }
 
 .dash-cell-edit {
   display: inline-flex;
@@ -941,9 +942,9 @@ html, body {
   font-family: var(--font-data);
   font-size: var(--text-data-md);
   font-weight: 600;
-  color: var(--accent-warm);
+  color: var(--accent);
   letter-spacing: 0.5px;
-  background: var(--accent-warm-glow);
+  background: var(--bg3);
   padding: 4px 12px;
   border-radius: 20px;
   flex-shrink: 0;
@@ -1970,10 +1971,10 @@ button:focus-visible {
   margin-bottom: var(--space-sm);
 }
 
-.dash-team-card .dash-table th,
 .dash-team-card .dash-table td {
   background: var(--bg);
 }
+.dash-team-card .dash-table th { background: var(--bg3); }
 .dash-team-card .dash-table tr:nth-child(even) td { background: var(--bg3); }
 
 /* ── Profile manage button ────────────────────────────── */
@@ -3589,7 +3590,6 @@ function loadRnR() {
           var isMe = entry.name === currentUser;
           html += '<div class="rnr-row' + (isMe ? ' rnr-row-me' : '') + '"' + (rank <= 3 ? ' data-rank="' + rank + '"' : '') + '>' +
             '<span class="rnr-rank">' + rank + '</span>' +
-            '<span class="rnr-avatar"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg></span>' +
             '<span class="rnr-info"><span class="rnr-name">' + esc(entry.name) + '</span><span class="rnr-team">' + esc(entry.team) + '</span></span>' +
             '<span class="rnr-pts">' + entry.score + ' pts</span>' +
             '</div>';
