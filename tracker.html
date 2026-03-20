@@ -547,7 +547,7 @@ html, body {
   font-weight: 600;
   padding: 6px 16px;
   border-radius: 20px;
-  border-left: 3px solid var(--accent);
+  border: none;
   margin: 0 auto var(--space-sm);
   text-align: center;
   width: fit-content;
@@ -632,7 +632,7 @@ html, body {
   font-size: var(--text-body);
   letter-spacing: 1px;
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text);
   border: none;
   cursor: pointer;
   transition: background 0.2s, color 0.2s, box-shadow 0.2s;
@@ -661,14 +661,14 @@ html, body {
   white-space: nowrap;
 }
 
-.dash-table tr:nth-child(even) td { background: var(--bg2); }
+.dash-table tr:nth-child(even) td { background: var(--bg3); }
 .dash-table tr:nth-child(even) td:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
 .dash-table tr:nth-child(even) td:last-child { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
 
 .dash-table th {
   font-family: var(--font-body);
-  color: var(--text-muted);
-  font-size: var(--text-xs);
+  color: var(--text-dim);
+  font-size: var(--text-sm);
   font-weight: 600;
   letter-spacing: 1.5px;
   text-transform: uppercase;
@@ -693,7 +693,7 @@ html, body {
   max-width: 55vw;
 }
 
-.dash-table tr:nth-child(even) td:first-child { background: var(--bg2); }
+.dash-table tr:nth-child(even) td:first-child { background: var(--bg3); }
 
 .dash-table th:last-child,
 .dash-table td:last-child {
@@ -701,7 +701,7 @@ html, body {
 }
 
 .dash-table td { color: var(--text-dim); }
-.dash-cell-val { color: var(--text); font-family: var(--font-data); font-weight: 600; font-size: 16px; }
+.dash-cell-val { color: var(--accent); font-family: var(--font-data); font-weight: 600; font-size: 18px; }
 
 .dash-cell-edit {
   display: inline-flex;
@@ -818,18 +818,17 @@ html, body {
 }
 
 .log-card-plus {
-  width: 52px;
-  height: 52px;
-  font-size: 28px;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+  width: 44px;
+  height: 44px;
+  font-size: 24px;
+  background: var(--accent);
   color: var(--bg);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
 }
 
 .log-card-minus {
-  width: 36px;
-  height: 36px;
-  font-size: 20px;
+  width: 44px;
+  height: 44px;
+  font-size: 24px;
   background: var(--bg3);
   color: var(--text-dim);
 }
@@ -870,19 +869,6 @@ html, body {
   letter-spacing: 2px;
   text-transform: uppercase;
   margin: var(--space-lg) 0 var(--space-sm);
-  position: relative;
-  padding-bottom: var(--space-sm);
-}
-
-.rnr-track-heading::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--accent), var(--accent-warm), transparent);
-  border-radius: 1px;
 }
 
 .rnr-track-heading:first-child {
@@ -1946,11 +1932,13 @@ button:focus-visible {
   border-radius: var(--radius);
   padding: var(--space-md);
   margin-bottom: var(--space-md);
+  border-left: 3px solid var(--accent);
+  box-shadow: var(--shadow);
 }
 
 .dash-team-card-name {
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 22px;
   color: var(--accent);
   letter-spacing: 1px;
   margin-bottom: var(--space-sm);
@@ -1960,7 +1948,7 @@ button:focus-visible {
 .dash-team-card .dash-table td {
   background: var(--bg);
 }
-.dash-team-card .dash-table tr:nth-child(even) td { background: var(--bg2); }
+.dash-team-card .dash-table tr:nth-child(even) td { background: var(--bg3); }
 
 /* ── Profile manage button ────────────────────────────── */
 
