@@ -2782,14 +2782,24 @@ function apiCached(action, params) {
   if (entry && (Date.now() - entry.ts < API_CACHE_TTL)) {
     return Promise.resolve(JSON.parse(JSON.stringify(entry.data)));
   }
+  if (entry) {
+    api(action, params).then(function(data) {
+      if (!data.error) apiCache[url] = { ts: Date.now(), data: data };
+    });
+    return Promise.resolve(JSON.parse(JSON.stringify(entry.data)));
+  }
   return api(action, params).then(function(data) {
-    apiCache[url] = { ts: Date.now(), data: data };
+    if (!data.error) apiCache[url] = { ts: Date.now(), data: data };
     return JSON.parse(JSON.stringify(data));
   });
 }
 
+function hasApiCache(action, params) {
+  return !!apiCache[buildApiUrl(action, params)];
+}
+
 function invalidateApiCache() {
-  apiCache = {};
+  Object.keys(apiCache).forEach(function(k) { apiCache[k].ts = 0; });
 }
 
 function fetchAllTeamsSummaries(entity) {
@@ -2820,7 +2830,9 @@ function loadDashboard() {
   var btn = document.getElementById('dash-refresh');
   if (btn.classList.contains('spinning')) return;
   var el = document.getElementById('dash-content');
-  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  if (!hasApiCache('getAllSummaries')) {
+    el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  }
   btn.classList.add('spinning');
 
   if (dashMode === 'team') {
@@ -3078,7 +3090,9 @@ function loadLogCards() {
   var btn = document.getElementById('log-refresh');
   if (btn.classList.contains('spinning')) return;
   var el = document.getElementById('log-cards-wrapper');
-  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  if (!hasApiCache('getSummary', { teamId: currentTeamId })) {
+    el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  }
   btn.classList.add('spinning');
 
   apiCached('getSummary', { teamId: currentTeamId }).then(function(data) {
@@ -3290,7 +3304,9 @@ function loadHackathonLog() {
   var btn = document.getElementById('hack-log-refresh');
   if (btn.classList.contains('spinning')) return;
   var el = document.getElementById('hack-log-wrapper');
-  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  if (!hasApiCache('getSummary', { teamId: currentTeamId })) {
+    el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  }
   btn.classList.add('spinning');
 
   var myTasks = getMyHackTasks();
@@ -3383,7 +3399,9 @@ function loadHackLeaderboard() {
   var btn = document.getElementById('hackboard-refresh');
   if (btn.classList.contains('spinning')) return;
   var el = document.getElementById('hackboard-content');
-  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  if (!hasApiCache('getAllSummaries')) {
+    el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  }
   btn.classList.add('spinning');
 
   fetchAllTeamsSummaries().then(function(validResults) {
@@ -3478,7 +3496,9 @@ function loadRnR() {
   var btn = document.getElementById('rnr-refresh');
   if (btn.classList.contains('spinning')) return;
   var el = document.getElementById('rnr-content');
-  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  if (!hasApiCache('getAllSummaries')) {
+    el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  }
   btn.classList.add('spinning');
 
   fetchAllTeamsSummaries().then(function(validResults) {
@@ -3648,7 +3668,9 @@ function loadCategories() {
   var btn = document.getElementById('cat-refresh');
   if (btn.classList.contains('spinning')) return;
   var el = document.getElementById('cat-list');
-  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  if (!hasApiCache('getCategories', { teamId: currentTeamId })) {
+    el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  }
   btn.classList.add('spinning');
 
   apiCached('getCategories', { teamId: currentTeamId }).then(function(cats) {
@@ -3777,13 +3799,15 @@ function loadProfile() {
   document.getElementById('profile-name').textContent = currentUser;
   document.getElementById('profile-team-badge').textContent = currentTeamName;
 
-  // Reset stats while loading
-  document.getElementById('profile-total').textContent = '…';
-  document.getElementById('profile-top-kpi').textContent = '…';
-  document.getElementById('profile-since').textContent = '…';
-  document.getElementById('profile-top-kpi-label').textContent = 'Top KPI';
+  // Reset stats while loading (only on cold load)
+  if (!hasApiCache('getProfile', { name: currentUser, teamId: currentTeamId })) {
+    document.getElementById('profile-total').textContent = '…';
+    document.getElementById('profile-top-kpi').textContent = '…';
+    document.getElementById('profile-since').textContent = '…';
+    document.getElementById('profile-top-kpi-label').textContent = 'Top KPI';
+  }
 
-  api('getProfile', { name: currentUser, teamId: currentTeamId }).then(function(data) {
+  apiCached('getProfile', { name: currentUser, teamId: currentTeamId }).then(function(data) {
     if (data.error) return;
     document.getElementById('profile-total').textContent = data.totalActions;
     if (data.topKpi && data.topKpi.name !== '—') {
@@ -3801,7 +3825,7 @@ function loadProfile() {
   });
 
   // Check password status for button label
-  api('checkName', { name: currentUser }).then(function(res) {
+  apiCached('checkName', { name: currentUser }).then(function(res) {
     var btn = document.getElementById('profile-password-btn');
     if (res.exists && res.hasPassword) {
       btn.textContent = 'Change Password';
@@ -3812,7 +3836,9 @@ function loadProfile() {
 
   // RnR Breakdown
   var rnrEl = document.getElementById('profile-rnr-breakdown');
-  rnrEl.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  if (!hasApiCache('getAllSummaries')) {
+    rnrEl.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  }
 
   fetchAllTeamsSummaries().then(function(results) {
     if (!results.length) { rnrEl.innerHTML = ''; return; }
@@ -3934,9 +3960,11 @@ var cachedTeamsList = [];
 
 function loadManageTeam() {
   var el = document.getElementById('manage-team-list');
-  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  if (!hasApiCache('getAllMembers')) {
+    el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  }
 
-  Promise.all([api('getAllMembers'), api('getTeams'), api('getCategories')]).then(function(results) {
+  Promise.all([apiCached('getAllMembers'), apiCached('getTeams'), apiCached('getCategories')]).then(function(results) {
     var members = results[0];
     var teams = results[1];
     var allCats = results[2];
@@ -4174,10 +4202,12 @@ function loadFeed() {
   var btn = document.getElementById('feed-refresh');
   if (btn.classList.contains('spinning')) return;
   var el = document.getElementById('feed-list');
-  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  if (!hasApiCache('getLogs', { limit: 50, teamId: currentTeamId })) {
+    el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  }
   btn.classList.add('spinning');
 
-  api('getLogs', { limit: 50, teamId: currentTeamId }).then(function(logs) {
+  apiCached('getLogs', { limit: 50, teamId: currentTeamId }).then(function(logs) {
     btn.classList.remove('spinning');
     screenLastLoaded['feed'] = Date.now();
 
@@ -4225,10 +4255,12 @@ function loadInbox() {
   var btn = document.getElementById('inbox-refresh');
   if (btn.classList.contains('spinning')) return;
   var el = document.getElementById('inbox-list');
-  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  if (!hasApiCache('getPendingLogs', { teamId: currentTeamId })) {
+    el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  }
   btn.classList.add('spinning');
 
-  api('getPendingLogs', { teamId: currentTeamId }).then(function(logs) {
+  apiCached('getPendingLogs', { teamId: currentTeamId }).then(function(logs) {
     btn.classList.remove('spinning');
     screenLastLoaded['inbox'] = Date.now();
 
@@ -4322,10 +4354,12 @@ function loadHackFeed() {
   var btn = document.getElementById('hackfeed-refresh');
   if (btn.classList.contains('spinning')) return;
   var el = document.getElementById('hackfeed-list');
-  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  if (!hasApiCache('getLogs', { limit: 50, teamId: currentTeamId })) {
+    el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  }
   btn.classList.add('spinning');
 
-  api('getLogs', { limit: 50, teamId: currentTeamId }).then(function(logs) {
+  apiCached('getLogs', { limit: 50, teamId: currentTeamId }).then(function(logs) {
     btn.classList.remove('spinning');
     screenLastLoaded['hackfeed'] = Date.now();
 
@@ -4372,10 +4406,12 @@ function loadHackInbox() {
   var btn = document.getElementById('hackinbox-refresh');
   if (btn.classList.contains('spinning')) return;
   var el = document.getElementById('hackinbox-list');
-  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  if (!hasApiCache('getPendingLogs', { teamId: currentTeamId })) {
+    el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  }
   btn.classList.add('spinning');
 
-  api('getPendingLogs', { teamId: currentTeamId }).then(function(logs) {
+  apiCached('getPendingLogs', { teamId: currentTeamId }).then(function(logs) {
     btn.classList.remove('spinning');
     screenLastLoaded['hackinbox'] = Date.now();
 
@@ -4432,9 +4468,11 @@ function loadHackInbox() {
 
 function loadAllTeams() {
   var el = document.getElementById('allteams-list');
-  el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  if (!hasApiCache('getTeams')) {
+    el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  }
 
-  Promise.all([api('getTeams'), api('getAllMembers')]).then(function(results) {
+  Promise.all([apiCached('getTeams'), apiCached('getAllMembers')]).then(function(results) {
     var teams = results[0];
     var members = results[1];
 
