@@ -880,7 +880,7 @@ html, body {
   align-items: center;
   gap: var(--space-md);
   background: var(--bg);
-  border: none;
+  border: 1px solid var(--bg3);
   border-left: 3px solid transparent;
   border-radius: var(--radius);
   padding: var(--space-md);
@@ -898,18 +898,43 @@ html, body {
   font-family: var(--font-display);
   font-size: 28px;
   color: var(--accent);
-  min-width: 36px;
-  text-align: center;
+  background: var(--bg2);
+  border-radius: var(--radius-sm, 6px);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .rnr-row[data-rank="1"] .rnr-rank { color: var(--accent-warm); font-size: 32px; }
 .rnr-row[data-rank="2"] .rnr-rank { color: #9ca3af; }
 .rnr-row[data-rank="3"] .rnr-rank { color: #b4824e; }
 
-.rnr-name {
+.rnr-avatar {
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.rnr-info {
+  display: flex;
+  flex-direction: column;
   flex: 1;
+  min-width: 0;
+}
+
+.rnr-name {
   font-weight: 600;
   font-size: var(--text-body);
+}
+
+.rnr-team {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--text-dim);
+  font-weight: 400;
 }
 
 .rnr-pts {
@@ -921,6 +946,7 @@ html, body {
   background: var(--accent-warm-glow);
   padding: 4px 12px;
   border-radius: 20px;
+  flex-shrink: 0;
 }
 
 .rnr-points {
@@ -3491,6 +3517,7 @@ function loadRnR() {
 
       // Aggregate scores across all teams
       var scoreMap = {}; // person → total score
+      var teamMap = {}; // person → team name
       validResults.forEach(function(r) {
         var teamName = r.team.name;
         var cats = r.summary.categories;
@@ -3505,6 +3532,7 @@ function loadRnR() {
         });
 
         Object.keys(allTotals).forEach(function(person) {
+          if (!teamMap[person]) teamMap[person] = teamName;
           var personTotals = allTotals[person];
           var score = 0;
           teamTasks.forEach(function(t) {
@@ -3526,7 +3554,7 @@ function loadRnR() {
 
       // Build sorted leaderboard
       var scores = Object.keys(scoreMap).map(function(name) {
-        return { name: name, score: scoreMap[name] };
+        return { name: name, score: scoreMap[name], team: teamMap[name] || '' };
       });
       scores.sort(function(a, b) { return b.score - a.score; });
 
@@ -3538,11 +3566,11 @@ function loadRnR() {
       } else {
         scores.forEach(function(entry, i) {
           var rank = i + 1;
-          var medal = rank === 1 ? '\uD83E\uDD47' : rank === 2 ? '\uD83E\uDD48' : rank === 3 ? '\uD83E\uDD49' : '';
           var isMe = entry.name === currentUser;
           html += '<div class="rnr-row' + (isMe ? ' rnr-row-me' : '') + '"' + (rank <= 3 ? ' data-rank="' + rank + '"' : '') + '>' +
-            '<span class="rnr-rank">' + (medal || rank) + '</span>' +
-            '<span class="rnr-name">' + esc(entry.name) + '</span>' +
+            '<span class="rnr-rank">' + rank + '</span>' +
+            '<span class="rnr-avatar"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/></svg></span>' +
+            '<span class="rnr-info"><span class="rnr-name">' + esc(entry.name) + '</span><span class="rnr-team">' + esc(entry.team) + '</span></span>' +
             '<span class="rnr-pts">' + entry.score + ' pts</span>' +
             '</div>';
         });
