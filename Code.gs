@@ -83,6 +83,18 @@ function doGet(e) {
       case 'getPendingLogs':
         result = getPendingLogs(e.parameter.teamId);
         break;
+      case 'getEvents':
+        result = getEvents(e.parameter.entity);
+        break;
+      case 'addEvent':
+        result = addEvent(e.parameter.title, e.parameter.date, e.parameter.time, e.parameter.description, e.parameter.person, e.parameter.entity);
+        break;
+      case 'updateEvent':
+        result = updateEvent(e.parameter.id, e.parameter.title, e.parameter.date, e.parameter.time, e.parameter.description, e.parameter.caller);
+        break;
+      case 'deleteEvent':
+        result = deleteEvent(e.parameter.id, e.parameter.caller);
+        break;
       default:
         result = { error: 'Unknown action: ' + action };
     }
@@ -746,4 +758,67 @@ function getAllSummaries(entity) {
       totals: filteredTotals
     };
   });
+}
+
+// ── Events (Calendar) ───────────────────────────────────────
+
+function getEvents(entity) {
+  var sheet = SS.getSheetByName('Events');
+  if (!sheet) return [];
+  var data = sheet.getDataRange().getValues().slice(1);
+  var rows = data.map(function(r) {
+    return { id: r[0], title: r[1], date: r[2], time: r[3] || '', description: r[4] || '', createdBy: r[5], createdAt: r[6], entity: r[7] || 'Antwerpen' };
+  });
+  if (entity) {
+    rows = rows.filter(function(r) { return r.entity === entity; });
+  }
+  return rows;
+}
+
+function addEvent(title, date, time, description, person, entity) {
+  if (!title || !date || !person) return { error: 'Missing required fields' };
+  if (!isPersonAdmin(person)) return { error: 'Only admins can add events' };
+
+  var sheet = SS.getSheetByName('Events');
+  if (!sheet) return { error: 'Events sheet not found' };
+  var id = Utilities.getUuid().substring(0, 8);
+  sheet.appendRow([id, title.trim(), date, time || '', (description || '').trim(), person.trim(), new Date().toISOString(), entity || 'Antwerpen']);
+  return { ok: true, id: id };
+}
+
+function updateEvent(id, title, date, time, description, caller) {
+  if (!id || !caller) return { error: 'Missing required fields' };
+  if (!isPersonAdmin(caller)) return { error: 'Only admins can edit events' };
+
+  var sheet = SS.getSheetByName('Events');
+  if (!sheet) return { error: 'Events sheet not found' };
+  var data = sheet.getDataRange().getValues();
+
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0].toString() === id) {
+      if (title) sheet.getRange(i + 1, 2).setValue(title.trim());
+      if (date) sheet.getRange(i + 1, 3).setValue(date);
+      sheet.getRange(i + 1, 4).setValue(time || '');
+      sheet.getRange(i + 1, 5).setValue((description || '').trim());
+      return { ok: true };
+    }
+  }
+  return { error: 'Event not found' };
+}
+
+function deleteEvent(id, caller) {
+  if (!id || !caller) return { error: 'Missing required fields' };
+  if (!isPersonAdmin(caller)) return { error: 'Only admins can delete events' };
+
+  var sheet = SS.getSheetByName('Events');
+  if (!sheet) return { error: 'Events sheet not found' };
+  var data = sheet.getDataRange().getValues();
+
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0].toString() === id) {
+      sheet.deleteRow(i + 1);
+      return { ok: true };
+    }
+  }
+  return { error: 'Event not found' };
 }

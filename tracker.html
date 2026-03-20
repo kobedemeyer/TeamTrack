@@ -607,6 +607,268 @@ html, body {
   margin-top: 48px;
 }
 
+/* ── Calendar Widget ─────────────────────────────────────── */
+
+.hub-calendar {
+  background: var(--bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+.hub-cal-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+.hub-cal-nav-btn {
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  line-height: 1;
+}
+.hub-cal-nav-btn:active { background: var(--bg2); }
+.hub-cal-title {
+  font-family: var(--font-display);
+  font-size: var(--text-data-lg);
+  color: var(--text);
+  flex: 1;
+  text-align: center;
+  letter-spacing: 1px;
+}
+.hub-cal-view-toggle {
+  display: flex;
+  gap: 2px;
+  background: var(--bg2);
+  border-radius: 8px;
+  padding: 2px;
+}
+.hub-cal-view-btn {
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.hub-cal-view-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Grid view */
+.hub-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.hub-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.hub-cal-cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--text);
+  border-radius: 8px;
+  cursor: pointer;
+  position: relative;
+  gap: 2px;
+}
+.hub-cal-cell:active { background: var(--bg2); }
+.hub-cal-cell.other-month { color: var(--text-dim); opacity: 0.4; }
+.hub-cal-cell.today .hub-cal-day-num {
+  background: var(--accent);
+  color: #fff;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hub-cal-cell.selected { background: var(--accent-glow); }
+.hub-cal-dot-row {
+  display: flex;
+  gap: 2px;
+  height: 6px;
+}
+.hub-cal-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* Day events popover (below grid) */
+.hub-cal-day-events {
+  margin-top: var(--space-sm);
+  border-top: 1px solid var(--bg2);
+  padding-top: var(--space-sm);
+}
+.hub-cal-day-events-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: var(--space-xs);
+}
+.hub-cal-day-events-empty {
+  font-size: 13px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+/* Shared event item (used in both views) */
+.hub-cal-event-item {
+  background: var(--bg2);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-xs);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+.hub-cal-event-info { flex: 1; min-width: 0; }
+.hub-cal-event-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+}
+.hub-cal-event-meta {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.hub-cal-event-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 4px;
+  white-space: pre-line;
+}
+.hub-cal-event-del {
+  background: none;
+  border: none;
+  color: var(--red);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  display: none;
+}
+body.is-admin .hub-cal-event-del { display: block; }
+
+/* List view */
+.hub-cal-list-empty {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 14px;
+  padding: var(--space-lg) 0;
+}
+
+/* Add button */
+.hub-cal-add-btn {
+  display: none;
+  width: 100%;
+  padding: var(--space-sm);
+  margin-top: var(--space-sm);
+  background: none;
+  border: 2px dashed var(--accent-dim);
+  border-radius: var(--radius);
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+body.is-admin .hub-cal-add-btn { display: block; }
+.hub-cal-add-btn:active { background: var(--accent-glow); }
+
+/* Event modal */
+.cal-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  align-items: flex-end;
+  justify-content: center;
+}
+.cal-modal-overlay.open { display: flex; }
+.cal-modal {
+  background: var(--bg);
+  border-radius: var(--radius) var(--radius) 0 0;
+  padding: var(--space-lg);
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.cal-modal h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-data-lg);
+  color: var(--text);
+  margin: 0 0 var(--space-md);
+  letter-spacing: 1px;
+}
+.cal-modal label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.cal-modal input,
+.cal-modal textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--bg3);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--bg2);
+  color: var(--text);
+  margin-bottom: var(--space-md);
+  box-sizing: border-box;
+}
+.cal-modal textarea { resize: vertical; min-height: 60px; }
+.cal-modal-btns {
+  display: flex;
+  gap: var(--space-sm);
+}
+.cal-modal-btns button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+.cal-modal-save {
+  background: var(--accent);
+  color: #fff;
+}
+.cal-modal-cancel {
+  background: var(--bg2);
+  color: var(--text);
+}
+
 /* ── Dashboard ───────────────────────────────────────────── */
 
 .dash-scroll {
@@ -2088,7 +2350,7 @@ button:focus-visible {
     <div class="hub-tile" id="hub-tile-tracker" onclick="goTo('home')">
       <div class="hub-tile-icon">&#128202;</div>
       <div class="hub-tile-label">TeamTracker</div>
-      <div class="hub-tile-desc">KPI tracking &amp; dashboards</div>
+      <div class="hub-tile-desc">Dashboard</div>
     </div>
     <div class="hub-tile" onclick="goTo('hackathon')">
       <div class="hub-tile-icon">&#128187;</div>
@@ -2096,7 +2358,42 @@ button:focus-visible {
       <div class="hub-tile-desc">Build &amp; compete</div>
     </div>
   </div>
+
+  <!-- Calendar Widget -->
+  <div class="hub-calendar" id="hub-calendar">
+    <div class="hub-cal-header">
+      <button class="hub-cal-nav-btn" onclick="calPrevMonth()">&#8249;</button>
+      <div class="hub-cal-title" id="cal-month-label"></div>
+      <button class="hub-cal-nav-btn" onclick="calNextMonth()">&#8250;</button>
+      <div class="hub-cal-view-toggle">
+        <button class="hub-cal-view-btn active" id="cal-view-grid" onclick="calSetView('grid')">Grid</button>
+        <button class="hub-cal-view-btn" id="cal-view-list" onclick="calSetView('list')">List</button>
+      </div>
+    </div>
+    <div id="cal-body"></div>
+    <button class="hub-cal-add-btn" onclick="openEventModal()">+ Add Event</button>
+  </div>
+
   <div class="logout-link" onclick="logout()">Switch user</div>
+</div>
+
+<!-- Event Modal -->
+<div class="cal-modal-overlay" id="cal-modal-overlay" onclick="if(event.target===this)closeEventModal()">
+  <div class="cal-modal">
+    <h3 id="cal-modal-title">Add Event</h3>
+    <label for="cal-ev-title">Title *</label>
+    <input type="text" id="cal-ev-title" placeholder="Event name">
+    <label for="cal-ev-date">Date *</label>
+    <input type="date" id="cal-ev-date">
+    <label for="cal-ev-time">Time (optional)</label>
+    <input type="time" id="cal-ev-time">
+    <label for="cal-ev-desc">Description (optional)</label>
+    <textarea id="cal-ev-desc" placeholder="Details..."></textarea>
+    <div class="cal-modal-btns">
+      <button class="cal-modal-cancel" onclick="closeEventModal()">Cancel</button>
+      <button class="cal-modal-save" onclick="saveEvent()">Save</button>
+    </div>
+  </div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════
@@ -2405,6 +2702,14 @@ const ENTITIES = [
 let categoriesCache = [];
 let summaryCache = null;
 let allTeamsSummaryCache = null;
+
+// Calendar state
+var calView = 'grid';
+var calYear = new Date().getFullYear();
+var calMonth = new Date().getMonth();
+var calEventsCache = [];
+var calSelectedDay = null;
+var calEditingEventId = null;
 let teamsCache = [];
 let dashMode = 'team';
 var isAdmin = new URLSearchParams(window.location.search).has('admin');
@@ -2716,6 +3021,7 @@ function goTo(screen) {
       setHeaderAvatar('hub-avatar');
       var trackerTile = document.getElementById('hub-tile-tracker');
       if (trackerTile) trackerTile.style.display = (currentEntity && currentEntity !== 'Antwerpen') ? 'none' : '';
+      loadCalendar();
       break;
     case 'hackathon':
       break;
@@ -4557,6 +4863,260 @@ function loadAllTeams() {
     }
 
     el.innerHTML = html;
+  });
+}
+
+// ── Calendar ─────────────────────────────────────────────────
+
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+function formatDateInput(d) {
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+}
+
+function formatCalDate(dateStr) {
+  var parts = dateStr.split('-');
+  var d = new Date(+parts[0], +parts[1] - 1, +parts[2]);
+  var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return days[d.getDay()] + ' ' + months[d.getMonth()] + ' ' + d.getDate();
+}
+
+function formatTime12h(timeStr) {
+  if (!timeStr) return '';
+  var parts = timeStr.split(':');
+  var h = parseInt(parts[0], 10);
+  var m = parts[1] || '00';
+  var ampm = h >= 12 ? 'PM' : 'AM';
+  if (h === 0) h = 12;
+  else if (h > 12) h -= 12;
+  return h + ':' + m + ' ' + ampm;
+}
+
+function loadCalendar() {
+  var entity = currentEntity || 'Antwerpen';
+  apiCached('getEvents', { entity: entity }).then(function(data) {
+    if (data.error) { calEventsCache = []; }
+    else { calEventsCache = Array.isArray(data) ? data : []; }
+    renderCalendar();
+  });
+}
+
+function renderCalendar() {
+  var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('cal-month-label').textContent = months[calMonth] + ' ' + calYear;
+
+  if (calView === 'grid') renderCalGrid();
+  else renderCalList();
+}
+
+function renderCalGrid() {
+  var body = document.getElementById('cal-body');
+  var html = '<div class="hub-cal-weekdays">';
+  ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(function(d) {
+    html += '<div>' + d + '</div>';
+  });
+  html += '</div><div class="hub-cal-grid">';
+
+  // First day of month (0=Sun..6=Sat) → convert to Mon-start (0=Mon..6=Sun)
+  var firstDay = new Date(calYear, calMonth, 1).getDay();
+  var startOffset = (firstDay === 0) ? 6 : firstDay - 1;
+  var daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  var daysInPrev = new Date(calYear, calMonth, 0).getDate();
+
+  var today = formatDateInput(new Date());
+
+  // Build event lookup: dateStr → [events]
+  var eventsByDate = {};
+  calEventsCache.forEach(function(ev) {
+    if (!eventsByDate[ev.date]) eventsByDate[ev.date] = [];
+    eventsByDate[ev.date].push(ev);
+  });
+
+  // Previous month padding
+  for (var p = startOffset - 1; p >= 0; p--) {
+    var prevDay = daysInPrev - p;
+    html += '<div class="hub-cal-cell other-month"><span class="hub-cal-day-num">' + prevDay + '</span></div>';
+  }
+
+  // Current month days
+  for (var d = 1; d <= daysInMonth; d++) {
+    var dateStr = calYear + '-' + pad2(calMonth + 1) + '-' + pad2(d);
+    var cls = 'hub-cal-cell';
+    if (dateStr === today) cls += ' today';
+    if (dateStr === calSelectedDay) cls += ' selected';
+    var evs = eventsByDate[dateStr] || [];
+    html += '<div class="' + cls + '" onclick="calSelectDay(\'' + dateStr + '\')">';
+    html += '<span class="hub-cal-day-num">' + d + '</span>';
+    if (evs.length > 0) {
+      html += '<div class="hub-cal-dot-row">';
+      for (var i = 0; i < Math.min(evs.length, 3); i++) html += '<div class="hub-cal-dot"></div>';
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  // Next month padding
+  var totalCells = startOffset + daysInMonth;
+  var remainder = totalCells % 7;
+  if (remainder > 0) {
+    for (var n = 1; n <= 7 - remainder; n++) {
+      html += '<div class="hub-cal-cell other-month"><span class="hub-cal-day-num">' + n + '</span></div>';
+    }
+  }
+
+  html += '</div>';
+
+  // Day events popover
+  if (calSelectedDay) {
+    var dayEvs = eventsByDate[calSelectedDay] || [];
+    html += '<div class="hub-cal-day-events">';
+    html += '<div class="hub-cal-day-events-title">' + formatCalDate(calSelectedDay) + '</div>';
+    if (dayEvs.length === 0) {
+      html += '<div class="hub-cal-day-events-empty">No events</div>';
+    } else {
+      dayEvs.forEach(function(ev) { html += renderEventItem(ev); });
+    }
+    html += '</div>';
+  }
+
+  body.innerHTML = html;
+}
+
+function renderCalList() {
+  var body = document.getElementById('cal-body');
+  var today = formatDateInput(new Date());
+
+  // Filter to upcoming events (today or later), sorted by date+time
+  var upcoming = calEventsCache.filter(function(ev) { return ev.date >= today; });
+  upcoming.sort(function(a, b) {
+    if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+    return (a.time || '') < (b.time || '') ? -1 : 1;
+  });
+
+  if (upcoming.length === 0) {
+    body.innerHTML = '<div class="hub-cal-list-empty">No upcoming events</div>';
+    return;
+  }
+
+  var html = '';
+  upcoming.forEach(function(ev) { html += renderEventItem(ev); });
+  body.innerHTML = html;
+}
+
+function renderEventItem(ev) {
+  var html = '<div class="hub-cal-event-item">';
+  html += '<div class="hub-cal-event-info">';
+  html += '<div class="hub-cal-event-title">' + esc(ev.title) + '</div>';
+  html += '<div class="hub-cal-event-meta">' + formatCalDate(ev.date);
+  if (ev.time) html += ' &middot; ' + formatTime12h(ev.time);
+  html += '</div>';
+  if (ev.description) html += '<div class="hub-cal-event-desc">' + esc(ev.description) + '</div>';
+  html += '</div>';
+  html += '<button class="hub-cal-event-del" onclick="calDeleteEvent(\'' + esc(ev.id) + '\',\'' + esc(ev.title).replace(/'/g, "\\'") + '\')">&times;</button>';
+  html += '</div>';
+  return html;
+}
+
+function calPrevMonth() {
+  calMonth--;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  calSelectedDay = null;
+  renderCalendar();
+}
+
+function calNextMonth() {
+  calMonth++;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  calSelectedDay = null;
+  renderCalendar();
+}
+
+function calSetView(view) {
+  calView = view;
+  document.getElementById('cal-view-grid').classList.toggle('active', view === 'grid');
+  document.getElementById('cal-view-list').classList.toggle('active', view === 'list');
+  calSelectedDay = null;
+  renderCalendar();
+}
+
+function calSelectDay(dateStr) {
+  calSelectedDay = (calSelectedDay === dateStr) ? null : dateStr;
+  renderCalendar();
+}
+
+function openEventModal(eventId) {
+  calEditingEventId = eventId || null;
+  var titleEl = document.getElementById('cal-modal-title');
+  var titleIn = document.getElementById('cal-ev-title');
+  var dateIn = document.getElementById('cal-ev-date');
+  var timeIn = document.getElementById('cal-ev-time');
+  var descIn = document.getElementById('cal-ev-desc');
+
+  if (calEditingEventId) {
+    titleEl.textContent = 'Edit Event';
+    var ev = calEventsCache.find(function(e) { return e.id === calEditingEventId; });
+    if (ev) {
+      titleIn.value = ev.title || '';
+      dateIn.value = ev.date || '';
+      timeIn.value = ev.time || '';
+      descIn.value = ev.description || '';
+    }
+  } else {
+    titleEl.textContent = 'Add Event';
+    titleIn.value = '';
+    dateIn.value = calSelectedDay || formatDateInput(new Date());
+    timeIn.value = '';
+    descIn.value = '';
+  }
+  document.getElementById('cal-modal-overlay').classList.add('open');
+}
+
+function closeEventModal() {
+  document.getElementById('cal-modal-overlay').classList.remove('open');
+  calEditingEventId = null;
+}
+
+function saveEvent() {
+  var title = document.getElementById('cal-ev-title').value.trim();
+  var date = document.getElementById('cal-ev-date').value;
+  var time = document.getElementById('cal-ev-time').value;
+  var desc = document.getElementById('cal-ev-desc').value.trim();
+  var entity = currentEntity || 'Antwerpen';
+
+  if (!title) { showToast('Title is required'); return; }
+  if (!date) { showToast('Date is required'); return; }
+
+  var params = { title: title, date: date, time: time, description: desc, person: currentUser, entity: entity };
+
+  if (calEditingEventId) {
+    params.id = calEditingEventId;
+    params.caller = currentUser;
+    api('updateEvent', params).then(function(res) {
+      if (res.error) { showToast('Error: ' + res.error); return; }
+      showToast('Event updated');
+      closeEventModal();
+      invalidateApiCache();
+      loadCalendar();
+    });
+  } else {
+    api('addEvent', params).then(function(res) {
+      if (res.error) { showToast('Error: ' + res.error); return; }
+      showToast('Event added');
+      closeEventModal();
+      invalidateApiCache();
+      loadCalendar();
+    });
+  }
+}
+
+function calDeleteEvent(evId, evTitle) {
+  if (!confirm('Delete "' + evTitle + '"?')) return;
+  api('deleteEvent', { id: evId, caller: currentUser }).then(function(res) {
+    if (res.error) { showToast('Error: ' + res.error); return; }
+    showToast('Event deleted');
+    invalidateApiCache();
+    loadCalendar();
   });
 }
 
