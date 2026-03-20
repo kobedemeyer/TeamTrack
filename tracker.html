@@ -701,6 +701,26 @@ html, body {
   min-width: 90px;
 }
 
+.dash-table-collapsed th:not(:first-child):not(:last-child),
+.dash-table-collapsed td:not(:first-child):not(:last-child) {
+  display: none;
+}
+
+.dash-expand-btn {
+  display: block;
+  margin: 8px auto 0;
+  padding: 6px 18px;
+  background: none;
+  border: 1.5px solid var(--accent-dim);
+  border-radius: 20px;
+  color: var(--accent);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dash-expand-btn:hover { background: var(--bg3); }
+
 .dash-table td { color: var(--text-dim); }
 .dash-cell-val { color: var(--accent); font-family: var(--font-data); font-weight: 700; font-size: 18px; }
 
@@ -2944,7 +2964,7 @@ function renderDashboard() {
     function buildIndividualTable(data, cats, heading) {
       if (!cats.length) return '';
       var h = '<div class="rnr-track-heading">' + heading + '</div>';
-      h += '<table class="dash-table"><thead><tr><th>Member</th>';
+      h += '<table class="dash-table dash-table-collapsed"><thead><tr><th>Member</th>';
       cats.forEach(function(c) {
         h += '<th>' + esc(c.name) +
           (isSuperAdmin ? ' <button class="dash-del-btn" data-del-cat="' + esc(c.id) + '" data-del-cat-name="' + esc(c.name) + '" title="Delete KPI">&#10005;</button>' : '') +
@@ -2973,6 +2993,7 @@ function renderDashboard() {
         h += '<td><span class="dash-cell-val dash-row-total" data-person="' + esc(m) + '">' + rowTotal + '</span></td></tr>';
       });
       h += '</tbody></table>';
+      h += '<button class="dash-expand-btn">See more</button>';
       return h;
     }
 
@@ -3002,6 +3023,14 @@ function renderDashboard() {
     }
 
     el.innerHTML = html || '<div class="dash-empty">No KPI data yet.</div>';
+
+    el.querySelectorAll('.dash-expand-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var table = btn.previousElementSibling;
+        var collapsed = table.classList.toggle('dash-table-collapsed');
+        btn.textContent = collapsed ? 'See more' : 'See less';
+      });
+    });
 
     if (isSuperAdmin) {
       // +/− buttons
