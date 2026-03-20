@@ -767,7 +767,16 @@ function getEvents(entity) {
   if (!sheet) return [];
   var data = sheet.getDataRange().getValues().slice(1);
   var rows = data.map(function(r) {
-    return { id: r[0], title: r[1], date: r[2], time: r[3] || '', description: r[4] || '', createdBy: r[5], createdAt: r[6], entity: r[7] || 'Antwerpen' };
+    // Google Sheets may auto-convert date/time to Date objects — normalize to strings
+    var d = r[2];
+    if (d instanceof Date) {
+      d = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+    }
+    var t = r[3] || '';
+    if (t instanceof Date) {
+      t = ('0' + t.getHours()).slice(-2) + ':' + ('0' + t.getMinutes()).slice(-2);
+    }
+    return { id: r[0], title: r[1], date: d, time: t, description: r[4] || '', createdBy: r[5], createdAt: r[6], entity: r[7] || 'Antwerpen' };
   });
   if (entity) {
     rows = rows.filter(function(r) { return r.entity === entity; });
